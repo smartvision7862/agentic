@@ -1,0 +1,23 @@
+{
+  "name": "Content Agent OS",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "forwardPorts": [3950],
+  "portsAttributes": {
+    "3950": {
+      "label": "Agentic OS App",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "cd content-os && npm install",
+  "postStartCommand": "cd content-os && npm start",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}
