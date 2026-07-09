@@ -397,6 +397,9 @@ async function recordTurn() {
   voice.recording = true;
   setAssistantState("listening", "Listening…");
 
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const useBrowserSTT = hudState.ttsProvider === "browser" && !!SpeechRecognition;
+
   voice.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const src = voice.audioCtx.createMediaStreamSource(voice.stream);
   voice.analyser = voice.audioCtx.createAnalyser();
@@ -404,67 +407,125 @@ async function recordTurn() {
   src.connect(voice.analyser);
   const buf = new Uint8Array(voice.analyser.fftSize);
 
-  const chunks = [];
-  const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
-  voice.recorder = new MediaRecorder(voice.stream, { mimeType: mime });
-  voice.recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-
   const started = Date.now();
   let lastVoice = 0; let sawVoice = false; let stopped = false;
+
+  const cleanupAudio = () => {
+    try { voice.stream.getTracks().forEach((t) => t.stop()); } catch {}
+    try { voice.audioCtx.close(); } catch {}
+  };
 
   const finish = () => {
     if (stopped) return; stopped = true;
     cancelAnimationFrame(voice.levelRAF);
-    try { voice.recorder.state !== "inactive" && voice.recorder.stop(); } catch {}
   };
 
-  const loop = () => {
-    if (stopped) return;
-    voice.analyser.getByteTimeDomainData(buf);
-    let sum = 0;
-    for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
-    const rms = Math.sqrt(sum / buf.length);
-    setLevel(Math.min(1, rms * 4));
-    const now = Date.now();
-    if (rms > VAD.speakThresh) { sawVoice = true; lastVoice = now; }
-    const silentFor = now - (lastVoice || started);
-    if (sawVoice && silentFor > VAD.silenceMs) return finish();        // end of utterance
-    if (!sawVoice && now - started > VAD.noSpeechMs) return finish();  // nobody spoke
-    if (now - started > VAD.maxTurnMs) return finish();                // hard cap
-    voice.levelRAF = requestAnimationFrame(loop);
-  };
-
-  voice.recorder.onstop = async () => {
-    voice.recording = false;
-    setLevel(0);
-    try { voice.stream.getTracks().forEach((t) => t.stop()); } catch {}
-    try { voice.audioCtx.close(); } catch {}
-    const blob = new Blob(chunks, { type: "audio/webm" });
-    if (!sawVoice || blob.size < 1200) {           // nothing meaningful captured
-      setAssistantState("idle", "Idle");
-      if (voice.conversing) toast("Didn't catch that — tap to try again");
-      stopConversation();
-      return;
-    }
-    setAssistantState("thinking", "Transcribing…");
-    try {
-      const b64 = await blobToBase64(blob);
-      const { text } = await api("/api/assistant/transcribe", { method: "POST", body: { audio: b64, format: "webm" } });
+  if (useBrowserSTT) {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    
+    recognition.onresult = async (event) => {
+      finish(); cleanupAudio();
+      voice.recording = false; setLevel(0);
+      const text = event.results[0][0].transcript;
       const said = (text || "").trim();
+      
       if (!said) { setAssistantState("idle", "Idle"); if (voice.conversing) recordTurn(); return; }
       if (/^\s*(stop|cancel|that's all|thank you,? jarvis)\.?\s*$/i.test(said)) { stopConversation(); return; }
+      
+      setAssistantState("thinking", "Working…");
       $("#assistantInput").value = said;
       await sendToAssistant(said, { speakReply: true });
-      if (voice.conversing) recordTurn();          // continuous: listen again
-    } catch (e) {
-      toast(e.message, "error");
+      if (voice.conversing) recordTurn();
+    };
+    
+    recognition.onerror = (e) => {
+      if (e.error !== "no-speech") toast("Speech recognition error: " + e.error, "error");
+      finish(); cleanupAudio();
+      voice.recording = false; setLevel(0);
       setAssistantState("idle", "Idle");
       stopConversation();
-    }
-  };
+    };
+    
+    recognition.onend = () => {
+      if (voice.recording) {
+        finish(); cleanupAudio();
+        voice.recording = false; setLevel(0);
+        setAssistantState("idle", "Idle");
+        if (voice.conversing) recordTurn(); else stopConversation();
+      }
+    };
 
-  voice.recorder.start();
-  voice.levelRAF = requestAnimationFrame(loop);
+    const loop = () => {
+      if (stopped) return;
+      voice.analyser.getByteTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
+      setLevel(Math.min(1, Math.sqrt(sum / buf.length) * 4));
+      voice.levelRAF = requestAnimationFrame(loop);
+    };
+
+    recognition.start();
+    voice.levelRAF = requestAnimationFrame(loop);
+  } else {
+    const chunks = [];
+    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
+    voice.recorder = new MediaRecorder(voice.stream, { mimeType: mime });
+    voice.recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+
+    const finishRecorder = () => {
+      finish();
+      try { voice.recorder.state !== "inactive" && voice.recorder.stop(); } catch {}
+    };
+
+    const loop = () => {
+      if (stopped) return;
+      voice.analyser.getByteTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
+      const rms = Math.sqrt(sum / buf.length);
+      setLevel(Math.min(1, rms * 4));
+      const now = Date.now();
+      if (rms > VAD.speakThresh) { sawVoice = true; lastVoice = now; }
+      const silentFor = now - (lastVoice || started);
+      if (sawVoice && silentFor > VAD.silenceMs) return finishRecorder();
+      if (!sawVoice && now - started > VAD.noSpeechMs) return finishRecorder();
+      if (now - started > VAD.maxTurnMs) return finishRecorder();
+      voice.levelRAF = requestAnimationFrame(loop);
+    };
+
+    voice.recorder.onstop = async () => {
+      cleanupAudio();
+      voice.recording = false;
+      setLevel(0);
+      const blob = new Blob(chunks, { type: "audio/webm" });
+      if (!sawVoice || blob.size < 1200) {
+        setAssistantState("idle", "Idle");
+        if (voice.conversing) toast("Didn't catch that — tap to try again");
+        stopConversation();
+        return;
+      }
+      setAssistantState("thinking", "Transcribing…");
+      try {
+        const b64 = await blobToBase64(blob);
+        const { text } = await api("/api/assistant/transcribe", { method: "POST", body: { audio: b64, format: "webm" } });
+        const said = (text || "").trim();
+        if (!said) { setAssistantState("idle", "Idle"); if (voice.conversing) recordTurn(); return; }
+        if (/^\s*(stop|cancel|that's all|thank you,? jarvis)\.?\s*$/i.test(said)) { stopConversation(); return; }
+        $("#assistantInput").value = said;
+        await sendToAssistant(said, { speakReply: true });
+        if (voice.conversing) recordTurn();
+      } catch (e) {
+        toast(e.message, "error");
+        setAssistantState("idle", "Idle");
+        stopConversation();
+      }
+    };
+
+    voice.recorder.start();
+    voice.levelRAF = requestAnimationFrame(loop);
+  }
 }
 
 function startConversation() {
