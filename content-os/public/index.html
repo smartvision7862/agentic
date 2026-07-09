@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">◎</div>
+        <div>
+          <h1 id="brandTitle">Agentic OS</h1>
+          <p class="subtitle" id="brandSub">Command · Expenses · Mail · Tasks · Content</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn back-hud" id="backToHud">← Dashboard</button>
+        <button class="header-btn home-only" id="homeSettings">⚙ Settings</button>
+        <span id="queuePill" class="status-pill">Queue: 0</span>
+        <span id="serverStatus" class="status-pill">Checking…</span>
+      </div>
+    </header>
+
+    <!-- ── HOME / HUD ──────────────────────────────────────────── -->
+    <section class="view active" id="view-home">
+      <div class="hud-grid">
+        <!-- Expenses -->
+        <div class="hud-panel hud-expenses">
+          <div class="hud-panel-head">
+            <span class="hud-panel-title">Expenses</span>
+            <div class="hud-head-actions">
+              <div class="date-toggle" id="expRange">
+                <button data-range="today">Day</button>
+                <button data-range="week">Week</button>
+                <button data-range="month" class="active">Month</button>
+                <button data-range="year">Year</button>
+              </div>
+              <button class="header-btn hud-sync-btn hidden" id="expSync">↻ Process</button>
+            </div>
+          </div>
+          <div class="exp-totals">
+            <div class="exp-stat income"><div class="lbl">Revenue</div><div class="val" id="expRevenue">—</div></div>
+            <div class="exp-stat expense"><div class="lbl">Expense</div><div class="val" id="expExpense">—</div></div>
+          </div>
+          <div class="exp-net">Net <b id="expNet">—</b></div>
+          <div class="cat-list" id="expCats"></div>
+        </div>
+
+        <!-- Globe / Jarvis -->
+        <div class="globe-stage hud-globe">
+          <div class="assistant-title">J · A · R · V · I · S</div>
+          <div class="assistant-hint">Tap the globe to speak</div>
+          <div class="globe-canvas-wrap" id="globeClick">
+            <div class="globe-ring"></div>
+            <div class="globe-ring r2"></div>
+            <canvas id="globeCanvas"></canvas>
+          </div>
+          <div class="assistant-status" id="assistantStatus">Idle</div>
+          <button class="chat-history-pill hidden" id="chatHistoryPill">⌃ Chat history</button>
+          <div class="assistant-bar">
+            <input type="text" id="assistantInput" placeholder="Ask anything, or “generate an image of…”" />
+            <button id="assistantSend">Send</button>
+          </div>
+          <div class="assistant-reply" id="assistantReply"></div>
+          <div class="chat-history-panel hidden" id="chatHistoryPanel">
+            <div class="chat-history-head">
+              <span>Chat history</span>
+              <div class="chat-history-head-actions">
+                <button class="chat-history-clear" id="chatHistoryClear">Clear</button>
+                <button class="history-panel-close" id="chatHistoryClose">×</button>
+              </div>
+            </div>
+            <div class="chat-history-list" id="chatHistoryList"></div>
+          </div>
+        </div>
+
+        <!-- Tasks -->
+        <div class="hud-panel hud-tasks">
+          <div class="hud-panel-head"><span class="hud-panel-title">Tasks · Today</span></div>
+          <div class="task-add">
+            <input type="text" id="taskInput" placeholder="Add a task for today" />
+            <button id="taskAdd">+</button>
+          </div>
+          <div class="task-list" id="taskList"></div>
+        </div>
+
+        <!-- Recent mails -->
+        <div class="hud-panel hud-mail">
+          <div class="hud-panel-head">
+            <span class="hud-panel-title">Recent Mail</span>
+            <button class="header-btn" id="mailSync">Sync</button>
+          </div>
+          <div class="mail-list" id="mailList"></div>
+        </div>
+
+        <!-- Content system tile -->
+        <div class="hud-panel hud-content" id="contentTile">
+          <div class="content-card">
+            <div class="cc-head">
+              <span class="ct-icon">◎</span>
+              <span class="ct-title">Content System</span>
+            </div>
+            <div class="cc-list" id="contentLatest">
+              <div class="hud-empty">Loading latest content…</div>
+            </div>
+            <button class="cc-enter" id="enterContent">Enter content system →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="tabs-nav hidden" id="tabsNav">
+      <button class="navtab active" data-view="sources">Sources</button>
+      <button class="navtab" data-view="feed">Feed</button>
+      <button class="navtab" data-view="studio">Studio</button>
+      <button class="navtab" data-view="schedule">Schedule</button>
+      <button class="navtab" data-view="settings">Settings</button>
+    </nav>
+
+    <!-- ── SOURCES ─────────────────────────────────────────────── -->
+    <section class="view" id="view-sources">
+      <div class="grid">
+        <aside>
+          <div class="card sidebar-card">
+            <div class="sidebar-fixed">
+              <h2>Research a topic</h2>
+              <label for="srcUrl">What should I research?</label>
+              <input type="text" id="srcUrl" placeholder="e.g. latest AI agent launches" />
+              <div class="btn-row">
+                <button type="button" class="btn-primary compact" id="researchNow">Research now</button>
+                <button type="button" class="header-btn" id="srcSubmit">Save &amp; schedule</button>
+              </div>
+              <label class="toggle-row mt">
+                <span>Advanced options</span>
+                <input type="checkbox" id="advToggle" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+            <div class="sidebar-scroll">
+              <form id="sourceForm" class="adv-hidden">
+                <label for="srcName">Display name</label>
+                <input type="text" id="srcName" placeholder="optional — defaults to the query" />
+
+                <label for="srcType" class="mt">Source type</label>
+                <select id="srcType">
+                  <option value="research" selected>Auto-research (Perplexity)</option>
+                  <option value="auto">Auto-detect (RSS, else scrape)</option>
+                  <option value="rss">RSS / Atom feed</option>
+                  <option value="url">Single page (Firecrawl)</option>
+                  <option value="search">Web search (Firecrawl)</option>
+                </select>
+
+                <label for="srcDepth" class="mt">Research depth</label>
+                <select id="srcDepth">
+                  <option value="sonar" selected>Sonar — fast &amp; cheap</option>
+                  <option value="sonar-pro">Sonar Pro — deeper</option>
+                </select>
+
+                <label for="srcSchedule" class="mt">Schedule</label>
+                <select id="srcSchedule">
+                  <option value="interval" selected>Every N hours/days</option>
+                  <option value="0 2 * * *">Every night (2 AM)</option>
+                  <option value="0 8 * * *">Every morning (8 AM)</option>
+                  <option value="0 */6 * * *">Every 6 hours</option>
+                  <option value="0 9 * * 1">Weekly (Mon 9 AM)</option>
+                  <option value="custom">Custom cron…</option>
+                </select>
+                <input type="text" id="srcCron" class="mt hidden" placeholder="cron e.g. 0 2 * * *" />
+
+                <div id="intervalRow">
+                  <label class="mt">Run every</label>
+                  <div class="inline-row">
+                    <input type="number" id="srcIntervalValue" min="1" value="6" />
+                    <select id="srcIntervalUnit">
+                      <option value="hours" selected>hours</option>
+                      <option value="days">days</option>
+                      <option value="months">months</option>
+                    </select>
+                  </div>
+                </div>
+
+                <label for="srcTags" class="mt">Topic tags (comma-separated)</label>
+                <input type="text" id="srcTags" placeholder="AI, startups" />
+
+                <label for="srcFresh" class="mt">Freshness override (hours)</label>
+                <input type="number" id="srcFresh" min="1" placeholder="blank = use global default" />
+              </form>
+            </div>
+          </div>
+        </aside>
+        <main class="card card-main">
+          <div class="main-head">
+            <h3>Sources</h3>
+            <span class="hint" id="srcCount">—</span>
+          </div>
+          <div id="sourcesList" class="sources-list"></div>
+        </main>
+      </div>
+    </section>
+
+    <!-- ── FEED ────────────────────────────────────────────────── -->
+    <section class="view" id="view-feed">
+      <div class="card card-main">
+        <div class="main-head">
+          <h3>Priority feed</h3>
+          <div class="feed-controls">
+            <label class="toggle-row">
+              <span>Bypass freshness</span>
+              <input type="checkbox" id="bypassFresh" />
+              <span class="toggle-track"></span>
+            </label>
+            <select id="feedStatus">
+              <option value="new,shortlisted">Active</option>
+              <option value="new">New only</option>
+              <option value="shortlisted">Shortlisted</option>
+              <option value="used">Used</option>
+              <option value="dismissed">Dismissed</option>
+            </select>
+            <button class="header-btn" id="rankBtn">Rank now</button>
+            <button class="header-btn" id="feedRefresh">Refresh</button>
+          </div>
+        </div>
+        <div class="feed-legend">
+          <span><b>Score</b> 0–100 — how strongly this matches your niche (AI-ranked).</span>
+          <span><b>Reason</b> — why it scored that way.</span>
+          <span><b>Angle</b> — a suggested way to post about it.</span>
+          <span>Approve with <b>Make post</b> → write content → generate image → schedule.</span>
+        </div>
+        <div id="feedList" class="feed-list"></div>
+      </div>
+    </section>
+
+    <!-- ── STUDIO ──────────────────────────────────────────────── -->
+    <section class="view" id="view-studio">
+      <div class="grid studio-grid">
+        <aside>
+          <div class="card sidebar-card">
+            <div class="sidebar-fixed">
+              <h2>Drafts</h2>
+            </div>
+            <div class="sidebar-scroll" id="draftsList"></div>
+          </div>
+        </aside>
+        <main class="card card-main">
+          <div id="studioEmpty" class="empty">
+            <div class="empty-icon">✎</div>
+            <p>Pick a draft, or create one from the Feed tab.</p>
+          </div>
+          <div id="studioPane" class="hidden">
+            <div class="studio-cols">
+              <div class="studio-edit">
+                <label for="draftCaption">Caption</label>
+                <textarea id="draftCaption" rows="10"></textarea>
+                <div class="btn-row">
+                  <button class="header-btn" id="saveCaption">Save</button>
+                </div>
+                <div class="img-controls">
+                  <label class="mt">Image</label>
+                  <div class="inline-row">
+                    <select id="imgRatio">
+                      <option value="1:1" selected>Square 1:1</option>
+                      <option value="4:5">Portrait 4:5</option>
+                      <option value="3:4">Portrait 3:4</option>
+                      <option value="9:16">Story 9:16</option>
+                      <option value="4:3">Landscape 4:3</option>
+                      <option value="16:9">Wide 16:9</option>
+                    </select>
+                    <label class="toggle-row">
+                      <span>Research</span>
+                      <input type="checkbox" id="imgResearch" checked />
+                      <span class="toggle-track"></span>
+                    </label>
+                  </div>
+                  <p class="hint">The graphic renders a real headline &amp; subhead about your topic. Generates in the exact ratio you pick.</p>
+                  <div class="btn-row">
+                    <button class="btn-primary compact" id="genImage">Generate image</button>
+                    <button class="header-btn hidden" id="regenImage">Regenerate</button>
+                  </div>
+                  <div class="img-status" id="imgStatus"></div>
+                  <div class="img-history" id="imgHistory"></div>
+                </div>
+                <div class="agent-box">
+                  <label for="refineInput">Ask the agent to edit</label>
+                  <div class="inline-row">
+                    <input type="text" id="refineInput" placeholder="e.g. shorten and add a CTA" />
+                    <button class="btn-primary compact" id="refineBtn">Send</button>
+                  </div>
+                  <div id="refineLog" class="refine-log"></div>
+                </div>
+              </div>
+              <div class="studio-preview">
+                <div class="preview-card">
+                  <div class="preview-image" id="previewImage"><span class="ph">image preview</span></div>
+                  <div class="preview-caption-wrap">
+                    <div class="preview-caption" id="previewCaption"></div>
+                    <button class="icon-btn" id="editCaptionBtn" title="Edit caption">✎ Edit caption</button>
+                  </div>
+                </div>
+                <button class="btn-primary" id="openSchedule">Schedule this post</button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- ── SCHEDULE ────────────────────────────────────────────── -->
+    <section class="view" id="view-schedule">
+      <div class="card card-main">
+        <div class="main-head">
+          <h3>Scheduled posts</h3>
+          <button class="header-btn" id="schedRefresh">Refresh</button>
+        </div>
+        <div id="scheduledList" class="scheduled-list"></div>
+      </div>
+    </section>
+
+    <!-- ── SETTINGS ────────────────────────────────────────────── -->
+    <section class="view" id="view-settings">
+      <div class="settings-grid">
+        <div class="card">
+          <h2>Connected accounts</h2>
+          <p class="hint">Connect via Zernio. Only Instagram, LinkedIn, and X are enabled.</p>
+          <div class="connect-row">
+            <button class="connect-btn" data-platform="instagram">Connect Instagram</button>
+            <button class="connect-btn" data-platform="linkedin">Connect LinkedIn</button>
+            <button class="connect-btn" data-platform="twitter">Connect X</button>
+          </div>
+          <button class="header-btn" id="syncAccounts">Sync accounts</button>
+          <div id="accountsList" class="accounts-list"></div>
+          <details class="help">
+            <summary>Setup notes</summary>
+            <ul>
+              <li><b>Instagram</b>: requires a Business or Creator account. Zernio runs the Meta OAuth and handles container creation and publishing.</li>
+              <li><b>LinkedIn</b>: personal or company page via Zernio OAuth.</li>
+              <li><b>X / Twitter</b>: OAuth via Zernio (platform value <code>twitter</code>).</li>
+              <li>After connecting, click <b>Sync accounts</b> to pull them in.</li>
+            </ul>
+          </details>
+        </div>
+
+        <div class="card">
+          <h2>Gmail (mail &amp; expenses)</h2>
+          <p class="hint">Connect Gmail (read-only) to fetch recent mail and auto-extract income &amp; expenses on the dashboard.</p>
+          <div id="gmailStatus" class="service-flags"></div>
+          <div class="btn-row">
+            <button class="connect-btn" id="gmailConnect">Connect Gmail</button>
+            <button class="header-btn" id="gmailDisconnect">Disconnect</button>
+          </div>
+          <label for="setAutoUpdate" class="mt">Auto-update every (hours)</label>
+          <input type="number" id="setAutoUpdate" min="0" step="1" placeholder="6" />
+          <p class="hint">Background poll to refresh mail &amp; expenses. Minimum 1 hour; set <code>0</code> to turn off.</p>
+          <details class="help">
+            <summary>Setup notes</summary>
+            <ul>
+              <li>Add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to <code>.env</code> (see <code>.env.example</code>).</li>
+              <li>In Google Cloud, enable the <b>Gmail API</b> and add redirect URI <code>http://localhost:3950/api/gmail/callback</code>.</li>
+              <li>Scope used is <code>gmail.readonly</code> only.</li>
+            </ul>
+          </details>
+        </div>
+
+        <div class="card">
+          <h2>Scraping &amp; freshness</h2>
+          <label for="setFreshness">Default freshness window (hours)</label>
+          <input type="number" id="setFreshness" min="1" />
+          <label for="setNiche" class="mt">Niche keywords (comma-separated)</label>
+          <input type="text" id="setNiche" placeholder="AI, automation, startups" />
+          <label for="setTimezone" class="mt">Timezone</label>
+          <input type="text" id="setTimezone" placeholder="Asia/Kolkata" />
+        </div>
+
+        <div class="card">
+          <h2>AI models (OpenRouter)</h2>
+          <label for="setTextModel">Text / caption model</label>
+          <input type="text" id="setTextModel" placeholder="anthropic/claude-sonnet-4" />
+          <label for="setAssistantModel" class="mt">Jarvis assistant model (tool-capable)</label>
+          <input type="text" id="setAssistantModel" placeholder="anthropic/claude-sonnet-4" />
+          <label for="setAssistantFastModel" class="mt">Jarvis fast reply model (instant chat)</label>
+          <input type="text" id="setAssistantFastModel" placeholder="google/gemini-2.5-flash" />
+          <label for="setResearchModel" class="mt">Research model</label>
+          <input type="text" id="setResearchModel" placeholder="perplexity/sonar" />
+          <label for="setImageContentModel" class="mt">Content image model</label>
+          <input type="text" id="setImageContentModel" placeholder="openai/gpt-image-2" />
+          <label for="setImageModel" class="mt">Fallback image model</label>
+          <input type="text" id="setImageModel" placeholder="google/gemini-2.5-flash-image" />
+          <button class="header-btn mt" id="loadImageModels">Load image models</button>
+          <select id="imageModelPicker" class="mt hidden"></select>
+          <label for="setBrand" class="mt">Brand voice</label>
+          <textarea id="setBrand" rows="3"></textarea>
+        </div>
+
+        <div class="card">
+          <h2>Jarvis voice</h2>
+          <label for="setTtsProvider">Voice provider</label>
+          <select id="setTtsProvider">
+            <option value="openrouter">OpenRouter TTS (natural)</option>
+            <option value="browser">Browser voice (instant, offline)</option>
+          </select>
+          <label for="setTtsModel" class="mt">TTS model</label>
+          <input type="text" id="setTtsModel" placeholder="hexgrad/kokoro-82m" />
+          <label for="setTtsVoice" class="mt">Voice</label>
+          <input type="text" id="setTtsVoice" placeholder="bm_george" />
+          <label for="setTranscribeModel" class="mt">Transcription model</label>
+          <input type="text" id="setTranscribeModel" placeholder="openai/whisper-large-v3" />
+        </div>
+
+        <div class="card">
+          <h2>Save</h2>
+          <p class="hint">API keys live in <code>.env</code> and are never editable here.</p>
+          <div id="serviceFlags" class="service-flags"></div>
+          <button class="btn-primary" id="saveSettings">Save settings</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Schedule modal -->
+  <div id="scheduleModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Schedule post</h3>
+        <button class="history-panel-close" id="modalClose">×</button>
+      </div>
+      <label>Platforms &amp; accounts</label>
+      <div id="modalAccounts" class="modal-accounts"></div>
+      <label class="mt" for="modalWhen">Schedule for</label>
+      <input type="datetime-local" id="modalWhen" />
+      <label class="toggle-row mt">
+        <span>Publish immediately</span>
+        <input type="checkbox" id="modalNow" />
+        <span class="toggle-track"></span>
+      </label>
+      <button class="btn-primary mt" id="modalSubmit">Confirm schedule</button>
+      <p id="modalError" class="modal-error hidden"></p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+  <script src="/hud/hud.js"></script>
+  <script type="module" src="/hud/globe.js"></script>
+</body>
+</html>

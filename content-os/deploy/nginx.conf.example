@@ -1,0 +1,34 @@
+# Nginx reverse proxy for Content Agent OS on a Hostinger VPS.
+# 1. Replace yourdomain.com with your domain.
+# 2. Copy to /etc/nginx/sites-available/content-os and symlink into sites-enabled.
+# 3. Run certbot to add HTTPS (it rewrites this file for you).
+
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    # Generous timeouts: SSE streams + AI image generation are long-lived.
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+    client_max_body_size 16m;
+
+    location / {
+        proxy_pass http://127.0.0.1:3950;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Server-Sent Events (live logs, scheduler, post status) must not be buffered.
+    location ~ ^/api/(events|jobs/.+/stream)$ {
+        proxy_pass http://127.0.0.1:3950;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_buffering off;
+        proxy_cache off;
+        chunked_transfer_encoding off;
+    }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "content-os",
+  "version": "0.1.0",
+  "description": "Agentic content OS: scrape RSS + URLs, AI-rank by priority, generate posts, and schedule to Instagram, LinkedIn, and X via Zernio.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node --check server.js && node --check app.js && node --check server/index.js && node --check server/db.js && node --check server/sqlite.js && echo BUILD_OK",
+    "dev": "node --watch server/index.js",
+    "test:apis": "node scripts/test-apis.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "googleapis": "^173.0.0",
+    "node-sqlite3-wasm": "^0.8.59",
+    "p-queue": "^8.1.0",
+    "rss-parser": "^3.13.0",
+    "twilio": "^6.0.2"
+  }
+}
