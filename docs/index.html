@@ -133,6 +133,16 @@
     .wa-send input{flex:1}
     .wa-empty{text-align:center;color:var(--m);font-size:.8rem;padding:1.5rem}
 
+    /* Connections Grid */
+    .conn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .conn-card { background: var(--s); border: 1px solid var(--b); border-radius: var(--R); padding: 1.2rem; display: flex; flex-direction: column; align-items: center; gap: 0.65rem; text-align: center; position: relative; transition: border-color .15s; }
+    .conn-card:hover { border-color: var(--a); }
+    .conn-icon { font-size: 2rem; margin-bottom: 0.25rem; }
+    .conn-name { font-size: 0.88rem; font-weight: 600; }
+    .conn-status { font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; }
+    .conn-status.connected { background: rgba(52,211,153,0.15); color: var(--g); }
+    .conn-status.disconnected { background: rgba(248,113,113,0.15); color: var(--r); }
+
     /* Settings grid */
     .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
 
@@ -186,6 +196,7 @@
   </div>
   <div class="hacts">
     <span id="jarvisKey" class="pill err" title="Click to set Gemini key">🤖 Jarvis: No key</span>
+    <span id="zernioBadge" class="pill err" title="Click to set Zernio key">🔗 Zernio: No key</span>
     <span id="gmailBadge" class="pill warn">📧 Gmail: Not connected</span>
     <span id="waBadge" class="pill warn">💬 WA: Setup needed</span>
   </div>
@@ -193,6 +204,7 @@
 
 <div class="tabs">
   <button class="tab active" data-tab="home">🏠 Dashboard</button>
+  <button class="tab" data-tab="connections">🔗 Connections</button>
   <button class="tab" data-tab="mail">📧 Gmail</button>
   <button class="tab" data-tab="whatsapp">💬 WhatsApp</button>
   <button class="tab" data-tab="expenses">💰 Expenses</button>
@@ -267,6 +279,65 @@
         </div>
       </div>
       <div class="ml" id="mailList"><div class="me">Connect Gmail above to see your real emails here.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONNECTIONS TAB -->
+<div class="view" id="tab-connections">
+  <div style="max-width: 800px; margin: 0 auto;">
+    <div id="zernioSetupBanner" class="banner" style="display:none">
+      <h3>🔑 Set up your Zernio API Key to connect social accounts</h3>
+      <p>Connections require a Zernio API Key. Get one at <a href="https://zernio.com" target="_blank">zernio.com</a> and enter it in Settings or below.</p>
+      <div class="br">
+        <input type="password" id="zernioBannerKey" placeholder="sk_..."/>
+        <button class="btn p" id="zernioBannerSave">Save Key</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem">
+      <h2>🔗 Add Connection</h2>
+      <p class="hint">Click any platform below to start the Zernio OAuth connection flow. Once connected, your account will appear under "Active Connections".</p>
+      <div class="conn-grid" id="connectGrid">
+        <div class="conn-card">
+          <div class="conn-icon">📸</div>
+          <div class="conn-name">Instagram</div>
+          <button class="btn p connect-plat-btn" data-platform="instagram">Connect</button>
+        </div>
+        <div class="conn-card">
+          <div class="conn-icon">💼</div>
+          <div class="conn-name">LinkedIn</div>
+          <button class="btn p connect-plat-btn" data-platform="linkedin">Connect</button>
+        </div>
+        <div class="conn-card">
+          <div class="conn-icon">🐦</div>
+          <div class="conn-name">X / Twitter</div>
+          <button class="btn p connect-plat-btn" data-platform="twitter">Connect</button>
+        </div>
+        <div class="conn-card" style="opacity: 0.65;">
+          <div class="conn-icon">👥</div>
+          <div class="conn-name">Facebook</div>
+          <button class="btn connect-plat-btn" data-platform="facebook">Connect</button>
+        </div>
+        <div class="conn-card" style="opacity: 0.65;">
+          <div class="conn-icon">🎵</div>
+          <div class="conn-name">TikTok</div>
+          <button class="btn connect-plat-btn" data-platform="tiktok">Connect</button>
+        </div>
+        <div class="conn-card" style="opacity: 0.65;">
+          <div class="conn-icon">📺</div>
+          <div class="conn-name">YouTube</div>
+          <button class="btn connect-plat-btn" data-platform="youtube">Connect</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <h2>👥 Active Connections</h2>
+        <button class="btn" id="syncZernioBtn">↻ Sync Accounts</button>
+      </div>
+      <div class="tl" id="zernioAccountsList"><div class="empty">No connected accounts yet. Click Sync Accounts or connect above.</div></div>
     </div>
   </div>
 </div>
@@ -389,6 +460,17 @@
         <button class="btn danger" id="clearGemKey" style="font-size:.72rem">Clear</button>
       </div>
       <div id="gemTestResult" style="font-size:.75rem;margin-top:.5rem"></div>
+    </div>
+
+    <div class="card">
+      <h2>🔗 Zernio API Key (Connections)</h2>
+      <p class="hint">Get a key at <a href="https://zernio.com" target="_blank">zernio.com</a>. Stored only in your browser.</p>
+      <label>Zernio API Key</label>
+      <input type="password" id="zernioKeyInput" placeholder="sk_..."/>
+      <div style="display:flex;gap:.4rem;margin-top:.65rem;flex-wrap:wrap">
+        <button class="btn p" id="saveZernioKey">Save</button>
+        <button class="btn danger" id="clearZernioKey" style="font-size:.72rem">Clear</button>
+      </div>
     </div>
 
     <div class="card">
@@ -525,6 +607,131 @@ $('bannerSave').addEventListener('click',()=>{const k=$('bannerKey').value.trim(
 $('saveVoiceSettings').addEventListener('click',()=>{DB.set('jvoice',$('jarvisVoice').value);DB.set('jlang',$('jarvisLang').value);toast('Voice saved');});
 $('saveGoogleId').addEventListener('click',()=>{DB.set('gclient_id',$('googleClientId').value.trim());toast('Client ID saved');});
 $('saveTwilio').addEventListener('click',()=>{DB.set('tw_sid',$('twilioSid').value.trim());DB.set('tw_tok',$('twilioToken').value.trim());DB.set('tw_num',$('twilioNum').value.trim());toast('Twilio settings saved');});
+
+// ══ Zernio Connections ════════════════════════════════════════
+function getZernioKey(){return DB.get('zernio_key','')||'';}
+function setZernioKey(k){DB.set('zernio_key',k);updateZernioHeader();renderZernioTab();}
+function updateZernioHeader(){
+  const k=getZernioKey();
+  const el=$('zernioBadge');
+  if(k&&k.startsWith('sk')){el.textContent='🔗 Zernio: Active';el.className='pill ok';$('zernioSetupBanner').style.display='none';}
+  else{el.textContent='🔗 Zernio: No key';el.className='pill err';$('zernioSetupBanner').style.display='';}
+}
+$('zernioBadge').addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.querySelector('[data-tab=settings]').classList.add('active');
+  $('tab-settings').classList.add('active');
+});
+
+$('saveZernioKey').addEventListener('click',()=>{const k=$('zernioKeyInput').value.trim();if(!k){toast('Enter Zernio Key','err');return;}setZernioKey(k);toast('Zernio key saved ✓');});
+$('clearZernioKey').addEventListener('click',()=>{DB.del('zernio_key');DB.del('zernio_profile_id');$('zernioKeyInput').value='';updateZernioHeader();renderZernioTab();toast('Zernio key cleared');});
+$('zernioBannerSave').addEventListener('click',()=>{const k=$('zernioBannerKey').value.trim();if(!k){toast('Enter Zernio Key','err');return;}setZernioKey(k);$('zernioKeyInput').value=k;toast('Zernio activated ✓');});
+
+// API Caller
+async function zernioApi(path, opts={}){
+  const key=getZernioKey();
+  if(!key)throw new Error("No Zernio API Key configured");
+  const res=await fetch('https://zernio.com/api/v1'+path,{
+    headers:{
+      "Authorization": 'Bearer '+key,
+      "Content-Type": 'application/json'
+    },
+    ...opts,
+    body:opts.body?JSON.stringify(opts.body):undefined
+  });
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(data.error||data.message||'HTTP '+res.status);
+  return data;
+}
+
+async function getProfileId(){
+  let pid=DB.get('zernio_profile_id','');
+  if(pid)return pid;
+  const data=await zernioApi('/profiles');
+  const profiles=data.profiles||data.data?.profiles||data.data||[];
+  let p=profiles.find(x=>x.isDefault||x.default)||profiles[0];
+  if(!p){
+    const c=await zernioApi('/profiles',{method:'POST',body:{name:'Content Agent OS'}});
+    p=c.profile||c.data?.profile||c.data||c;
+  }
+  pid=p._id||p.id;
+  if(pid)DB.set('zernio_profile_id',pid);
+  return pid;
+}
+
+// Platforms and connects
+document.querySelectorAll('.connect-plat-btn').forEach(btn=>btn.addEventListener('click',async()=>{
+  const plat=btn.dataset.platform;
+  try{
+    btn.disabled=true;btn.textContent='Connecting…';
+    const pid=await getProfileId();
+    // Redirect URL should come back to connections tab
+    const redirect=window.location.origin+window.location.pathname+'?tab=connections';
+    const data=await zernioApi('/connect/'+plat+'?profileId='+pid+'&redirect_url='+encodeURIComponent(redirect));
+    const url=data.authUrl||data.data?.authUrl||data.url;
+    if(url)window.location.href=url;
+    else toast('No authUrl returned from Zernio','err');
+  }catch(e){toast(e.message,'err');}
+  finally{btn.disabled=false;btn.textContent='Connect';}
+}));
+
+async function syncZernioAccounts(){
+  const listEl=$('zernioAccountsList');
+  listEl.innerHTML='<div class="empty">Syncing with Zernio…</div>';
+  try{
+    const data=await zernioApi('/accounts');
+    const accounts=data.accounts||data.data?.accounts||data.data||[];
+    if(!accounts.length){
+      listEl.innerHTML='<div class="empty">No active connections found. Connect an account above!</div>';
+      return;
+    }
+    listEl.innerHTML=accounts.map((a,i)=>`
+      <div class="tr">
+        <span style="display:flex;align-items:center;gap:.5rem">
+          <span>${a.platform==='instagram'?'📸':a.platform==='linkedin'?'💼':'🐦'}</span>
+          <span><b>${esc(a.displayName||a.name||a.username)}</b> <span style="font-size:.7rem;color:var(--m)">@${esc(a.username||a.handle)}</span></span>
+        </span>
+        <button class="btn danger" onclick="delZernioAccount('${a._id||a.id}')" style="font-size:.7rem;padding:.2rem .5rem">Disconnect</button>
+      </div>`).join('');
+    DB.set('zernio_accounts',accounts);
+  }catch(e){
+    listEl.innerHTML='<div class="empty" style="color:var(--r)">Failed to sync: '+esc(e.message)+'</div>';
+  }
+}
+window.delZernioAccount=async(id)=>{
+  if(!confirm('Disconnect this account?'))return;
+  try{
+    await zernioApi('/accounts/'+id,{method:'DELETE'});
+    toast('Account disconnected');
+    syncZernioAccounts();
+  }catch(e){toast(e.message,'err');}
+};
+$('syncZernioBtn').addEventListener('click',()=>syncZernioAccounts());
+
+function renderZernioTab(){
+  const key=getZernioKey();
+  if(!key){
+    $('zernioSetupBanner').style.display='';
+    $('zernioAccountsList').innerHTML='<div class="empty">Please set up your Zernio API Key first.</div>';
+  }else{
+    $('zernioSetupBanner').style.display='none';
+    const accs=DB.get('zernio_accounts',[]);
+    if(accs.length){
+      // Render cached
+      $('zernioAccountsList').innerHTML=accs.map(a=>`
+        <div class="tr">
+          <span style="display:flex;align-items:center;gap:.5rem">
+            <span>${a.platform==='instagram'?'📸':a.platform==='linkedin'?'💼':'🐦'}</span>
+            <span><b>${esc(a.displayName||a.name||a.username)}</b> <span style="font-size:.7rem;color:var(--m)">@${esc(a.username||a.handle)}</span></span>
+          </span>
+          <button class="btn danger" onclick="delZernioAccount('${a._id||a.id}')" style="font-size:.7rem;padding:.2rem .5rem">Disconnect</button>
+        </div>`).join('');
+    }else{
+      syncZernioAccounts();
+    }
+  }
+}
 
 // ══ Tasks ══════════════════════════════════════════════════════
 function getTasks(){return DB.get('tasks',[]);}
@@ -796,6 +1003,7 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 (()=>{
   // Load saved settings into forms
   const k=getKey();if(k)$('geminiKey').value=k;
+  const zk=getZernioKey();if(zk)$('zernioKeyInput').value=zk;
   const gcid=DB.get('gclient_id','');$('googleClientId').value=gcid||'225707757266-lhdci24db6qr9k6g1c03o6aegp0nensd.apps.googleusercontent.com';
   const v=DB.get('jvoice','Charon');$('jarvisVoice').value=v;
   const l=DB.get('jlang','en-US');$('jarvisLang').value=l;
@@ -805,15 +1013,30 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
   $('waNumber').value=num||'+14155238886';
 
   updateHeader();
+  updateZernioHeader();
   renderTasks();
   renderExpenses();
   renderAllTx();
   renderWaMsgs();
+  renderZernioTab();
 
   // Load saved Gmail messages
   const savedMail=DB.get('gmail_msgs',[]);
   if(savedMail&&savedMail.length){renderMail(savedMail);updateGmailUI(true);}
   else updateGmailUI(false);
+
+  // Check URL parameters for tab routing (e.g. from OAuth redirect)
+  const urlParams=new URLSearchParams(window.location.search);
+  const targetTab=urlParams.get('tab');
+  if(targetTab && targetTab==='connections'){
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    document.querySelector('[data-tab=connections]').classList.add('active');
+    $('tab-connections').classList.add('active');
+    // Clear search parameters
+    history.replaceState(null,'',window.location.pathname);
+    syncZernioAccounts();
+  }
 
   // Poll local server health
   fetch('http://localhost:3950/api/health',{signal:AbortSignal.timeout(2000)})
