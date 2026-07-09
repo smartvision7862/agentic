@@ -388,6 +388,44 @@ app.post("/api/drafts/:id/schedule", asyncRoute(async (req, res) => {
 app.post("/api/webhooks/zernio", handleZernioWebhook);
 app.post("/api/webhooks/whatsapp", handleWhatsAppWebhook);
 
+// ── CORS for GitHub Pages static app ─────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") { res.sendStatus(204); return; }
+  next();
+});
+
+// ── WhatsApp send (proxy from static app) ────────────────────────
+// Stored received WA messages for the static app to poll
+const waInbox = [];
+// Register inbound to the inbox (called from handleWhatsAppWebhook)
+export function storeWaInbound(from, body) { waInbox.push({ from, body, time: new Date().toISOString() }); }
+app.get("/api/whatsapp/messages", (_req, res) => ok(res, { messages: waInbox.slice(-30) }));
+
+app.post("/api/whatsapp/send", asyncRoute(async (req, res) => {
+  const { to, message } = req.body || {};
+  if (!to || !message) return fail(res, 400, "to and message are required");
+  const sid = config.twilioSid;
+  const token = config.twilioAuthToken;
+  const from = config.twilioWhatsAppFrom || "whatsapp:+14155238886";
+  if (!sid || !token) return fail(res, 503, "Twilio not configured in .env");
+  const params = new URLSearchParams();
+  params.append("From", from.startsWith("whatsapp:") ? from : `whatsapp:${from}`);
+  params.append("To", to.startsWith("whatsapp:") ? to : `whatsapp:${to}`);
+  params.append("Body", message);
+  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: "POST",
+    headers: { "Authorization": "Basic " + Buffer.from(`${sid}:${token}`).toString("base64"), "Content-Type": "application/x-www-form-urlencoded" },
+    body: params,
+  });
+  const data = await r.json();
+  if (!r.ok) return fail(res, r.status, data.message || "Twilio error");
+  ok(res, { sid: data.sid, status: data.status });
+}));
+
+
 // ── Tasks (HUD: "to do today") ───────────────────────────────────
 app.get("/api/tasks", (req, res) => {
   const dueDate = req.query.due === "today" ? todayISODate() : req.query.due || undefined;

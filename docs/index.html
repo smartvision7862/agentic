@@ -4,289 +4,405 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Agentic OS — J.A.R.V.I.S</title>
-  <meta name="description" content="Agentic OS — AI-powered personal assistant with real-time Gemini voice, tasks, expenses and mail."/>
+  <meta name="description" content="Agentic OS — AI-powered personal assistant: Jarvis voice, Gmail, WhatsApp, tasks, expenses."/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }</script>
   <style>
-    :root {
-      --bg: #0a0d14;
-      --surface: #111622;
-      --surface2: #161d2e;
-      --border: rgba(99,120,200,0.13);
-      --accent: #5b8dfe;
-      --accent2: #7c4dff;
-      --green: #34d399;
-      --red: #f87171;
-      --yellow: #fbbf24;
-      --text: #e2e8f5;
-      --muted: #6b7a99;
-      --radius: 14px;
-      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
-      --mono: 'JetBrains Mono', monospace;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 15px; color-scheme: dark; scroll-behavior: smooth; }
-    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    :root{--bg:#080c16;--s:#101422;--s2:#161d2e;--b:rgba(80,110,220,.12);--a:#5b8dfe;--a2:#7c4dff;--g:#34d399;--r:#f87171;--y:#fbbf24;--t:#e2e8f5;--m:#6b7a99;--R:14px;--F:'Plus Jakarta Sans',system-ui,sans-serif;--M:'JetBrains Mono',monospace}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:15px;color-scheme:dark;scroll-behavior:smooth}
+    body{font-family:var(--F);background:var(--bg);color:var(--t);min-height:100vh;overflow-x:hidden}
 
-    /* ── Layout ── */
-    header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0.85rem 1.5rem; border-bottom: 1px solid var(--border);
-      background: rgba(10,13,20,0.92); backdrop-filter: blur(16px);
-      position: sticky; top: 0; z-index: 100;
-    }
-    .logo { display: flex; align-items: center; gap: 0.75rem; }
-    .logo-icon { font-size: 1.5rem; color: var(--accent); filter: drop-shadow(0 0 8px #5b8dfe99); }
-    h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
-    .subtitle { font-size: 0.72rem; color: var(--muted); }
-    .header-actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-    .api-status { font-size: 0.72rem; padding: 0.25rem 0.65rem; border-radius: 99px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); cursor: pointer; }
-    .api-status.ok { color: var(--green); border-color: rgba(52,211,153,0.3); }
-    .api-status.err { color: var(--red); border-color: rgba(248,113,113,0.3); }
+    /* Header */
+    header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.5rem;border-bottom:1px solid var(--b);background:rgba(8,12,22,.95);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100}
+    .logo{display:flex;align-items:center;gap:.75rem}
+    .logo-icon{font-size:1.4rem;color:var(--a);filter:drop-shadow(0 0 10px #5b8dfe80)}
+    h1{font-size:1.05rem;font-weight:700}
+    .sub{font-size:.7rem;color:var(--m)}
+    .hacts{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+    .pill{font-size:.7rem;padding:.22rem .6rem;border-radius:99px;background:var(--s2);border:1px solid var(--b);cursor:pointer;transition:all .15s}
+    .pill.ok{color:var(--g);border-color:rgba(52,211,153,.3)}
+    .pill.err{color:var(--r);border-color:rgba(248,113,113,.3)}
+    .pill.warn{color:var(--y);border-color:rgba(251,191,36,.3)}
 
-    /* ── Tabs ── */
-    .tabs { display: flex; gap: 0.3rem; padding: 0.75rem 1.5rem 0; background: var(--bg); border-bottom: 1px solid var(--border); }
-    .tab { background: none; border: none; color: var(--muted); font-family: var(--font); font-size: 0.82rem; font-weight: 500; padding: 0.5rem 0.9rem; border-radius: 8px 8px 0 0; cursor: pointer; transition: all 0.15s; }
-    .tab:hover { color: var(--text); background: var(--surface); }
-    .tab.active { color: var(--accent); background: var(--surface); border: 1px solid var(--border); border-bottom: 1px solid var(--surface); }
-    .view { display: none; padding: 1.5rem; animation: fadeIn 0.2s ease; }
-    .view.active { display: block; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+    /* Tabs */
+    .tabs{display:flex;gap:.25rem;padding:.7rem 1.5rem 0;background:var(--bg);border-bottom:1px solid var(--b);overflow-x:auto}
+    .tab{background:none;border:none;color:var(--m);font-family:var(--F);font-size:.8rem;font-weight:500;padding:.45rem .85rem;border-radius:8px 8px 0 0;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .tab:hover{color:var(--t);background:var(--s)}
+    .tab.active{color:var(--a);background:var(--s);border:1px solid var(--b);border-bottom:1px solid var(--s)}
+    .view{display:none;padding:1.25rem 1.5rem;animation:fi .2s ease}
+    .view.active{display:block}
+    @keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-    /* ── HUD Grid ── */
-    .hud-grid { display: grid; grid-template-columns: 1fr 1.15fr 1fr; grid-template-rows: auto auto; gap: 1rem; }
-    @media(max-width: 900px) { .hud-grid { grid-template-columns: 1fr; } }
-    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; }
-    .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; }
-    .panel-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 600; }
+    /* Buttons */
+    .btn{background:var(--s2);color:var(--t);border:1px solid var(--b);border-radius:8px;font-family:var(--F);font-size:.8rem;font-weight:500;padding:.42rem .85rem;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .btn:hover{border-color:var(--a);color:var(--a)}
+    .btn.p{background:var(--a);color:#fff;border-color:transparent}
+    .btn.p:hover{background:#4a7ef0}
+    .btn.g{background:rgba(52,211,153,.12);color:var(--g);border-color:rgba(52,211,153,.3)}
+    .btn.danger{background:rgba(248,113,113,.1);color:var(--r);border-color:rgba(248,113,113,.25)}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
 
-    /* ── Globe / Jarvis ── */
-    .globe-panel { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; position: relative; overflow: hidden; }
-    .globe-panel::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 60% at 50% 40%, rgba(91,141,254,0.07), transparent); pointer-events: none; }
-    .jarvis-title { font-size: 0.65rem; letter-spacing: 0.35em; color: var(--muted); font-weight: 700; text-transform: uppercase; }
-    .globe-wrap { position: relative; cursor: pointer; width: 160px; height: 160px; }
-    #globeCanvas { width: 160px; height: 160px; border-radius: 50%; }
-    .globe-ring { position: absolute; inset: -8px; border-radius: 50%; border: 1px solid rgba(91,141,254,0.25); animation: spin 8s linear infinite; pointer-events: none; }
-    .globe-ring.r2 { inset: -16px; border-color: rgba(124,77,255,0.15); animation-duration: 14s; animation-direction: reverse; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .jarvis-status { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
-    .jarvis-status.listening { color: var(--accent); }
-    .jarvis-status.speaking { color: var(--green); }
-    .jarvis-status.thinking { color: var(--yellow); }
-    .jarvis-reply { font-size: 0.85rem; line-height: 1.55; color: var(--text); max-width: 360px; min-height: 0; max-height: 120px; overflow-y: auto; text-align: center; display: none; }
-    .jarvis-reply.show { display: block; animation: fadeIn 0.2s; }
-    .jarvis-bar { display: flex; gap: 0.5rem; width: 100%; margin-top: 0.4rem; }
-    .jarvis-bar input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 0.82rem; padding: 0.5rem 0.75rem; outline: none; }
-    .jarvis-bar input:focus { border-color: var(--accent); }
-    .btn { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); font-size: 0.82rem; font-weight: 500; padding: 0.45rem 0.9rem; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-    .btn:hover { border-color: var(--accent); color: var(--accent); }
-    .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
-    .btn.primary:hover { background: #4a7ef0; }
+    /* Inputs */
+    input[type=text],input[type=password],input[type=number],input[type=email],input[type=datetime-local],textarea,select{width:100%;background:var(--s2);border:1px solid var(--b);border-radius:8px;color:var(--t);font-family:var(--F);font-size:.8rem;padding:.45rem .75rem;outline:none;transition:border .15s}
+    input:focus,textarea:focus,select:focus{border-color:var(--a)}
+    select option{background:var(--s)}
+    textarea{resize:vertical;min-height:70px}
+    label{display:block;font-size:.73rem;color:var(--m);margin-bottom:.3rem;margin-top:.7rem}
+    label:first-child{margin-top:0}
 
-    /* ── Expenses ── */
-    .exp-totals { display: flex; gap: 0.75rem; margin-bottom: 0.65rem; }
-    .exp-stat { flex: 1; background: var(--surface2); border-radius: 8px; padding: 0.55rem 0.75rem; }
-    .exp-stat .lbl { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-    .exp-stat .val { font-size: 1.1rem; font-weight: 700; font-family: var(--mono); margin-top: 0.2rem; }
-    .exp-stat.income .val { color: var(--green); }
-    .exp-stat.expense .val { color: var(--red); }
-    .exp-net { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.65rem; }
-    .exp-net b { color: var(--text); }
-    .tx-list { display: flex; flex-direction: column; gap: 0.4rem; max-height: 180px; overflow-y: auto; }
-    .tx-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; padding: 0.35rem 0.5rem; border-radius: 6px; background: var(--surface2); }
-    .tx-row .tx-cat { color: var(--muted); font-size: 0.7rem; }
-    .tx-row .tx-amt.pos { color: var(--green); }
-    .tx-row .tx-amt.neg { color: var(--red); }
-    .range-tabs { display: flex; gap: 0.25rem; }
-    .range-tab { background: none; border: 1px solid transparent; border-radius: 6px; color: var(--muted); font-size: 0.72rem; font-family: var(--font); padding: 0.2rem 0.45rem; cursor: pointer; }
-    .range-tab.active { color: var(--accent); border-color: var(--accent); }
-    .add-tx { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
-    .add-tx input, .add-tx select { flex: 1; min-width: 80px; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-size: 0.78rem; font-family: var(--font); padding: 0.35rem 0.6rem; outline: none; }
-    .add-tx input:focus, .add-tx select:focus { border-color: var(--accent); }
+    /* Cards */
+    .card{background:var(--s);border:1px solid var(--b);border-radius:var(--R);padding:1.1rem}
+    .card h2{font-size:.9rem;font-weight:700;margin-bottom:.75rem}
+    .hint{font-size:.73rem;color:var(--m);line-height:1.5;margin-top:.35rem}
+    .hint a{color:var(--a);text-decoration:none}
+    .hint a:hover{text-decoration:underline}
 
-    /* ── Tasks ── */
-    .task-add { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
-    .task-add input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 0.82rem; padding: 0.45rem 0.75rem; outline: none; }
-    .task-add input:focus { border-color: var(--accent); }
-    .task-list { display: flex; flex-direction: column; gap: 0.4rem; max-height: 220px; overflow-y: auto; }
-    .task-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; background: var(--surface2); border-radius: 8px; font-size: 0.82rem; }
-    .task-item input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
-    .task-item .task-title { flex: 1; }
-    .task-item.done .task-title { text-decoration: line-through; color: var(--muted); }
-    .task-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 0.2rem; }
-    .task-del:hover { color: var(--red); }
+    /* HUD grid */
+    .hg{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:1rem}
+    @media(max-width:900px){.hg{grid-template-columns:1fr}}
+    .panel{background:var(--s);border:1px solid var(--b);border-radius:var(--R);padding:1rem}
+    .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem}
+    .pt{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--m);font-weight:600}
+    .row{display:flex;gap:.4rem;margin-bottom:.65rem;flex-wrap:wrap}
 
-    /* ── Mail ── */
-    .mail-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto; }
-    .mail-item { padding: 0.6rem 0.75rem; background: var(--surface2); border-radius: 8px; }
-    .mail-from { font-size: 0.75rem; font-weight: 600; color: var(--accent); }
-    .mail-sub { font-size: 0.8rem; }
-    .mail-snip { font-size: 0.73rem; color: var(--muted); margin-top: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .mail-empty { font-size: 0.82rem; color: var(--muted); text-align: center; padding: 1.2rem; }
+    /* Globe */
+    .gp{display:flex;flex-direction:column;align-items:center;gap:.5rem;background:var(--s);border:1px solid var(--b);border-radius:var(--R);padding:1.1rem;position:relative;overflow:hidden}
+    .gp::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 35%,rgba(91,141,254,.08),transparent);pointer-events:none}
+    .jt{font-size:.62rem;letter-spacing:.35em;color:var(--m);font-weight:700;text-transform:uppercase}
+    .gw{position:relative;cursor:pointer;width:150px;height:150px}
+    #globeCanvas{width:150px;height:150px;border-radius:50%}
+    .gr{position:absolute;inset:-8px;border-radius:50%;border:1px solid rgba(91,141,254,.22);animation:sp 8s linear infinite;pointer-events:none}
+    .gr.r2{inset:-16px;border-color:rgba(124,77,255,.12);animation-duration:14s;animation-direction:reverse}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .js{font-size:.78rem;color:var(--m);font-weight:500;transition:color .2s}
+    .js.listening{color:var(--a)}
+    .js.speaking{color:var(--g)}
+    .js.thinking{color:var(--y)}
+    .jr{font-size:.82rem;line-height:1.55;color:var(--t);max-width:340px;max-height:110px;overflow-y:auto;text-align:center;display:none}
+    .jr.show{display:block;animation:fi .2s}
+    .jb{display:flex;gap:.4rem;width:100%;margin-top:.3rem}
+    .jb input{flex:1}
 
-    /* ── Settings card ── */
-    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; }
-    .card h2 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; }
-    label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.3rem; margin-top: 0.75rem; }
-    label:first-of-type { margin-top: 0; }
-    input[type=text], input[type=password], input[type=number], textarea {
-      width: 100%; background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 0.82rem;
-      padding: 0.5rem 0.75rem; outline: none;
-    }
-    input:focus, textarea:focus { border-color: var(--accent); }
-    textarea { resize: vertical; min-height: 60px; }
-    .hint { font-size: 0.75rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.5; }
-    .hint a { color: var(--accent); text-decoration: none; }
-    .hint a:hover { text-decoration: underline; }
+    /* Expenses */
+    .et{display:flex;gap:.6rem;margin-bottom:.6rem}
+    .es{flex:1;background:var(--s2);border-radius:8px;padding:.5rem .65rem}
+    .es .l{font-size:.65rem;color:var(--m);text-transform:uppercase;letter-spacing:.05em}
+    .es .v{font-size:1.05rem;font-weight:700;font-family:var(--M);margin-top:.15rem}
+    .es.inc .v{color:var(--g)}
+    .es.exp .v{color:var(--r)}
+    .en{font-size:.77rem;color:var(--m);margin-bottom:.6rem}
+    .en b{color:var(--t)}
+    .tl{display:flex;flex-direction:column;gap:.35rem;max-height:190px;overflow-y:auto}
+    .tr{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;padding:.32rem .45rem;border-radius:6px;background:var(--s2)}
+    .tc{color:var(--m);font-size:.67rem}
+    .ta.pos{color:var(--g)}
+    .ta.neg{color:var(--r)}
+    .rt{display:flex;gap:.2rem}
+    .rtb{background:none;border:1px solid transparent;border-radius:6px;color:var(--m);font-size:.68rem;font-family:var(--F);padding:.18rem .42rem;cursor:pointer}
+    .rtb.active{color:var(--a);border-color:var(--a)}
 
-    /* ── Toast ── */
-    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 0.65rem 1.1rem; font-size: 0.83rem; max-width: 320px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: all 0.25s; }
-    #toast.show { opacity: 1; transform: none; pointer-events: auto; }
-    #toast.ok { border-color: rgba(52,211,153,0.4); color: var(--green); }
-    #toast.err { border-color: rgba(248,113,113,0.4); color: var(--red); }
+    /* Tasks */
+    .ta-add{display:flex;gap:.4rem;margin-bottom:.65rem}
+    .ta-add input{flex:1}
+    .tsk-l{display:flex;flex-direction:column;gap:.35rem;max-height:210px;overflow-y:auto}
+    .tsk{display:flex;align-items:center;gap:.5rem;padding:.42rem .55rem;background:var(--s2);border-radius:8px;font-size:.8rem}
+    .tsk input[type=checkbox]{accent-color:var(--a);width:14px;height:14px;flex-shrink:0;cursor:pointer}
+    .tsk-t{flex:1}
+    .tsk.done .tsk-t{text-decoration:line-through;color:var(--m)}
+    .tsk-del{background:none;border:none;color:var(--m);cursor:pointer;font-size:.95rem;padding:0 .15rem}
+    .tsk-del:hover{color:var(--r)}
 
-    /* ── Scrollbars ── */
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    .empty { text-align: center; color: var(--muted); padding: 2rem; font-size: 0.85rem; }
+    /* Mail */
+    .ml{display:flex;flex-direction:column;gap:.45rem;max-height:230px;overflow-y:auto}
+    .mi{padding:.55rem .7rem;background:var(--s2);border-radius:8px;border-left:2px solid var(--a)}
+    .mf{font-size:.72rem;font-weight:600;color:var(--a)}
+    .ms{font-size:.78rem;margin-top:.1rem}
+    .mb{font-size:.7rem;color:var(--m);margin-top:.15rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .me{font-size:.8rem;color:var(--m);text-align:center;padding:1rem}
 
-    /* Gemini setup banner */
-    .setup-banner { background: linear-gradient(135deg, rgba(91,141,254,0.15), rgba(124,77,255,0.1)); border: 1px solid rgba(91,141,254,0.3); border-radius: var(--radius); padding: 1.2rem; margin-bottom: 1rem; }
-    .setup-banner h3 { font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--accent); }
-    .setup-banner p { font-size: 0.8rem; color: var(--text); line-height: 1.5; }
-    .setup-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
-    .setup-row input { flex: 1; }
+    /* WhatsApp */
+    .wa-msgs{display:flex;flex-direction:column;gap:.5rem;max-height:260px;overflow-y:auto;margin-bottom:.75rem;padding:.5rem;background:var(--s2);border-radius:8px;border:1px solid var(--b)}
+    .wa-msg{max-width:75%;padding:.5rem .75rem;border-radius:12px;font-size:.8rem;line-height:1.4}
+    .wa-msg.in{background:rgba(91,141,254,.15);border:1px solid rgba(91,141,254,.2);align-self:flex-start}
+    .wa-msg.out{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.2);align-self:flex-end;text-align:right}
+    .wa-msg .wt{font-size:.65rem;color:var(--m);margin-top:.25rem}
+    .wa-send{display:flex;gap:.4rem}
+    .wa-send input{flex:1}
+    .wa-empty{text-align:center;color:var(--m);font-size:.8rem;padding:1.5rem}
+
+    /* Settings grid */
+    .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+
+    /* Status badge */
+    .badge{display:inline-block;font-size:.68rem;padding:.18rem .5rem;border-radius:4px;font-weight:600;margin-left:.4rem}
+    .badge.ok{background:rgba(52,211,153,.15);color:var(--g)}
+    .badge.err{background:rgba(248,113,113,.15);color:var(--r)}
+    .badge.pend{background:rgba(251,191,36,.15);color:var(--y)}
+
+    /* Toast */
+    #toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:1000;background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:.6rem 1rem;font-size:.8rem;max-width:300px;opacity:0;transform:translateY(8px);pointer-events:none;transition:all .25s}
+    #toast.show{opacity:1;transform:none;pointer-events:auto}
+    #toast.ok{border-color:rgba(52,211,153,.4);color:var(--g)}
+    #toast.err{border-color:rgba(248,113,113,.4);color:var(--r)}
+
+    /* Modal */
+    .modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);align-items:center;justify-content:center}
+    .modal.show{display:flex}
+    .modal .card{width:480px;max-width:96vw;position:relative;max-height:90vh;overflow-y:auto}
+    .mc{position:absolute;top:.9rem;right:.9rem;background:none;border:none;color:var(--m);font-size:1.2rem;cursor:pointer}
+
+    ::-webkit-scrollbar{width:4px;height:4px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--b);border-radius:4px}
+    .empty{text-align:center;color:var(--m);padding:2rem;font-size:.82rem}
+
+    /* Banner */
+    .banner{background:linear-gradient(135deg,rgba(91,141,254,.13),rgba(124,77,255,.08));border:1px solid rgba(91,141,254,.25);border-radius:var(--R);padding:1rem 1.1rem;margin-bottom:1rem}
+    .banner h3{font-size:.88rem;color:var(--a);margin-bottom:.4rem}
+    .banner p{font-size:.78rem;color:var(--t);line-height:1.5}
+    .br{display:flex;gap:.4rem;margin-top:.65rem}
+    .br input{flex:1}
+    /* Full-width bottom panel */
+    .full{grid-column:1 / -1}
+    .tabs-inner{display:flex;gap:.25rem;margin-bottom:.75rem}
+    .itab{background:none;border:1px solid transparent;color:var(--m);font-family:var(--F);font-size:.75rem;padding:.3rem .6rem;border-radius:6px;cursor:pointer}
+    .itab.active{color:var(--a);border-color:var(--a)}
+    .itab-view{display:none}
+    .itab-view.active{display:block}
   </style>
 </head>
 <body>
+
 <header>
   <div class="logo">
     <div class="logo-icon">◎</div>
     <div>
       <h1>Agentic OS</h1>
-      <p class="subtitle">Jarvis · Tasks · Expenses · Mail</p>
+      <p class="sub">Jarvis · Gmail · WhatsApp · Tasks · Expenses</p>
     </div>
   </div>
-  <div class="header-actions">
-    <span id="apiStatus" class="api-status" title="Click to update Gemini API key">⚡ No API Key</span>
-    <button class="btn" id="clearDataBtn" style="font-size:0.72rem;padding:0.25rem 0.65rem;">🗑 Clear data</button>
+  <div class="hacts">
+    <span id="jarvisKey" class="pill err" title="Click to set Gemini key">🤖 Jarvis: No key</span>
+    <span id="gmailBadge" class="pill warn">📧 Gmail: Not connected</span>
+    <span id="waBadge" class="pill warn">💬 WA: Setup needed</span>
   </div>
 </header>
 
 <div class="tabs">
   <button class="tab active" data-tab="home">🏠 Dashboard</button>
+  <button class="tab" data-tab="mail">📧 Gmail</button>
+  <button class="tab" data-tab="whatsapp">💬 WhatsApp</button>
   <button class="tab" data-tab="expenses">💰 Expenses</button>
   <button class="tab" data-tab="settings">⚙ Settings</button>
 </div>
 
-<!-- ── DASHBOARD ── -->
+<!-- DASHBOARD -->
 <div class="view active" id="tab-home">
-  <div id="setupBanner" class="setup-banner" style="display:none">
-    <h3>🔑 Set up your Gemini API Key to activate Jarvis</h3>
-    <p>Jarvis needs a free Gemini API key to listen and respond. Get one in 30 seconds at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> → Get API key → Create API key.</p>
-    <div class="setup-row">
-      <input type="password" id="inlineBannerKey" placeholder="AIzaSy… or AQ.Ab8RN…"/>
-      <button class="btn primary" id="inlineSaveKey">Save & Activate</button>
+  <div id="setupBanner" class="banner" style="display:none">
+    <h3>🔑 Activate Jarvis — enter your Gemini API Key</h3>
+    <p>Get a <b>free</b> key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a> → Get API key → Create API key. It must start with <code>AIzaSy…</code></p>
+    <div class="br">
+      <input type="password" id="bannerKey" placeholder="AIzaSy…"/>
+      <button class="btn p" id="bannerSave">Activate</button>
     </div>
   </div>
 
-  <div class="hud-grid">
+  <div class="hg">
     <!-- Expenses panel -->
     <div class="panel">
-      <div class="panel-head">
-        <span class="panel-title">Expenses</span>
-        <div class="range-tabs">
-          <button class="range-tab active" data-range="month">Month</button>
-          <button class="range-tab" data-range="week">Week</button>
-          <button class="range-tab" data-range="today">Today</button>
+      <div class="ph">
+        <span class="pt">Expenses</span>
+        <div class="rt">
+          <button class="rtb active" data-range="month">Mo</button>
+          <button class="rtb" data-range="week">Wk</button>
+          <button class="rtb" data-range="today">Day</button>
         </div>
       </div>
-      <div class="exp-totals">
-        <div class="exp-stat income"><div class="lbl">Revenue</div><div class="val" id="expRevenue">—</div></div>
-        <div class="exp-stat expense"><div class="lbl">Expense</div><div class="val" id="expExpense">—</div></div>
+      <div class="et">
+        <div class="es inc"><div class="l">Revenue</div><div class="v" id="expR">—</div></div>
+        <div class="es exp"><div class="l">Expense</div><div class="v" id="expE">—</div></div>
       </div>
-      <div class="exp-net">Net <b id="expNet">—</b></div>
-      <div class="tx-list" id="txList"></div>
+      <div class="en">Net <b id="expN">—</b></div>
+      <div class="tl" id="txSnap"></div>
+      <button class="btn" style="width:100%;margin-top:.65rem;font-size:.73rem" id="addTxBtn">+ Add transaction</button>
     </div>
 
     <!-- Globe / Jarvis -->
-    <div class="globe-panel">
-      <div class="jarvis-title">J · A · R · V · I · S</div>
-      <p style="font-size:0.72rem;color:var(--muted)">Tap the globe to speak</p>
-      <div class="globe-wrap" id="globeClick">
-        <div class="globe-ring"></div>
-        <div class="globe-ring r2"></div>
-        <canvas id="globeCanvas" width="320" height="320"></canvas>
+    <div class="gp">
+      <div class="jt">J · A · R · V · I · S</div>
+      <p style="font-size:.68rem;color:var(--m)">Tap the globe to speak</p>
+      <div class="gw" id="globeClick">
+        <div class="gr"></div>
+        <div class="gr r2"></div>
+        <canvas id="globeCanvas" width="300" height="300"></canvas>
       </div>
-      <div class="jarvis-status" id="jarvisStatus">Idle</div>
-      <div class="jarvis-reply" id="jarvisReply"></div>
-      <div class="jarvis-bar">
+      <div class="js" id="jarvisStatus">Idle</div>
+      <div class="jr" id="jarvisReply"></div>
+      <div class="jb">
         <input type="text" id="jarvisInput" placeholder="Ask Jarvis anything…"/>
-        <button class="btn" id="jarvisSend">Send</button>
+        <button class="btn p" id="jarvisSend">↩</button>
       </div>
     </div>
 
     <!-- Tasks -->
     <div class="panel">
-      <div class="panel-head"><span class="panel-title">Tasks · Today</span></div>
-      <div class="task-add">
+      <div class="ph"><span class="pt">Tasks · Today</span><span id="taskCount" style="font-size:.7rem;color:var(--m)"></span></div>
+      <div class="ta-add">
         <input type="text" id="taskInput" placeholder="Add a task…"/>
-        <button class="btn primary" id="taskAdd">+</button>
+        <button class="btn p" id="taskAdd">+</button>
       </div>
-      <div class="task-list" id="taskList"></div>
+      <div class="tsk-l" id="taskList"></div>
     </div>
 
-    <!-- Mail -->
-    <div class="panel" style="grid-column: 1 / -1;">
-      <div class="panel-head">
-        <span class="panel-title">Mail (manual — paste your emails)</span>
-        <button class="btn" id="addMailBtn">+ Add mail</button>
+    <!-- Mail quick view -->
+    <div class="panel full">
+      <div class="ph">
+        <span class="pt">Recent Mail</span>
+        <div style="display:flex;gap:.4rem">
+          <button class="btn" id="gmailConnectBtn">Connect Gmail</button>
+          <button class="btn" id="gmailRefreshBtn" style="display:none">↻ Refresh</button>
+        </div>
       </div>
-      <div class="mail-list" id="mailList"><div class="mail-empty">No mail. Click "+ Add mail" to paste a message.</div></div>
+      <div class="ml" id="mailList"><div class="me">Connect Gmail above to see your real emails here.</div></div>
     </div>
   </div>
 </div>
 
-<!-- ── EXPENSES ── -->
-<div class="view" id="tab-expenses">
-  <div class="card" style="max-width: 600px; margin: 0 auto;">
-    <h2>Add Transaction</h2>
-    <div class="add-tx">
-      <select id="txType">
-        <option value="expense">Expense</option>
-        <option value="income">Income</option>
-      </select>
-      <input type="number" id="txAmount" placeholder="Amount" min="0" step="0.01"/>
-      <input type="text" id="txCategory" placeholder="Category (e.g. Food)"/>
-      <input type="text" id="txDesc" placeholder="Description (optional)"/>
-      <button class="btn primary" id="txAdd">Add</button>
+<!-- GMAIL TAB -->
+<div class="view" id="tab-mail">
+  <div class="card" style="max-width:700px;margin:0 auto">
+    <h2>📧 Gmail Integration</h2>
+    <p class="hint">Connect your Gmail account (read-only) to see real emails inside Agentic OS and let Jarvis answer questions about them.</p>
+
+    <div style="margin:1rem 0;padding:.85rem;background:var(--s2);border-radius:10px;border:1px solid var(--b)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+        <div>
+          <div style="font-size:.8rem;font-weight:600">Gmail Status <span id="gmailStatusBadge" class="badge err">Not connected</span></div>
+          <div id="gmailEmail" style="font-size:.72rem;color:var(--m);margin-top:.2rem"></div>
+        </div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+          <button class="btn p" id="gmailSignIn">Sign in with Google</button>
+          <button class="btn danger" id="gmailSignOut" style="display:none">Sign out</button>
+        </div>
+      </div>
     </div>
-    <div id="allTxList" class="tx-list"></div>
+
+    <div id="gmailInfo" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <div style="font-size:.82rem;font-weight:600">Inbox</div>
+        <button class="btn" id="fetchMoreMail">Load more</button>
+      </div>
+      <div id="fullMailList" class="ml" style="max-height:420px"></div>
+    </div>
+
+    <div class="hint" style="margin-top:1rem">
+      ⚠ <b>Note:</b> Gmail sign-in uses Google's secure OAuth. Only <code>gmail.readonly</code> scope is requested. Your emails are fetched directly in your browser and stored locally.
+    </div>
   </div>
 </div>
 
-<!-- ── SETTINGS ── -->
-<div class="view" id="tab-settings">
-  <div class="settings-grid">
+<!-- WHATSAPP TAB -->
+<div class="view" id="tab-whatsapp">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:860px;margin:0 auto">
     <div class="card">
-      <h2>🔑 Gemini API Key</h2>
-      <p class="hint">Get a free key at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> → Get API key → Create API key.<br>Stored only in your browser (localStorage). Never sent anywhere except Google.</p>
-      <label for="geminiKey">API Key</label>
-      <input type="password" id="geminiKey" placeholder="AIzaSy… or AQ.Ab8RN…"/>
-      <div style="margin-top:0.75rem">
-        <button class="btn primary" id="saveGeminiKey">Save key</button>
-        <button class="btn" id="testGeminiKey" style="margin-left:0.5rem">Test connection</button>
+      <h2>💬 WhatsApp (Twilio)</h2>
+      <p class="hint">Your Twilio credentials are already configured. To receive WhatsApp messages you need to expose your local server via a public URL and set it as your Twilio webhook.</p>
+
+      <label>Your Twilio WhatsApp number</label>
+      <input type="text" id="waNumber" value="+14155238886" placeholder="+14155238886 (Twilio sandbox)"/>
+
+      <label style="margin-top:.75rem">Recipient number</label>
+      <input type="text" id="waTo" placeholder="+1234567890"/>
+
+      <label>Message</label>
+      <textarea id="waMsg" placeholder="Type a message to send via WhatsApp…" rows="4"></textarea>
+
+      <div style="margin-top:.75rem;display:flex;gap:.4rem">
+        <button class="btn p" id="waSendBtn">Send via local server</button>
+        <button class="btn" id="waCopyBtn">Copy curl command</button>
+      </div>
+
+      <div id="waSendStatus" style="margin-top:.5rem;font-size:.75rem;color:var(--m)"></div>
+    </div>
+
+    <div class="card">
+      <h2>📥 Received Messages</h2>
+      <p class="hint">Messages received by your Twilio number appear here when the local server is running and the Twilio webhook is pointed at it.</p>
+      <div class="wa-msgs" id="waMsgs"><div class="wa-empty">No messages yet. WhatsApp messages received by your Twilio number will appear here when the local server is running.</div></div>
+      <div class="wa-send">
+        <input type="text" id="waQuickMsg" placeholder="Quick reply…"/>
+        <button class="btn p" id="waQuickSend">Send</button>
+      </div>
+      <div style="margin-top:.65rem;padding:.65rem;background:var(--s2);border-radius:8px;border:1px solid var(--b)">
+        <div style="font-size:.72rem;font-weight:600;margin-bottom:.4rem">Webhook Setup</div>
+        <div style="font-size:.7rem;color:var(--m);line-height:1.6">
+          1. Run the local server: <code style="color:var(--a)">npm start</code> in <code>/content-os</code><br>
+          2. Expose it: <code style="color:var(--a)">npx localtunnel --port 3950</code><br>
+          3. In Twilio Console → WhatsApp Sandbox → set webhook URL to:<br>
+          <code style="color:var(--g)">{your-tunnel-url}/api/webhooks/whatsapp</code>
+        </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- EXPENSES TAB -->
+<div class="view" id="tab-expenses">
+  <div style="max-width:680px;margin:0 auto">
+    <div class="card" style="margin-bottom:1rem">
+      <h2>Add Transaction</h2>
+      <div class="row">
+        <select id="txType" style="flex:none;width:auto">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+        <input type="number" id="txAmt" placeholder="Amount" style="flex:1;min-width:100px"/>
+        <input type="text" id="txCat" placeholder="Category" style="flex:1;min-width:100px"/>
+        <input type="text" id="txDesc" placeholder="Note (optional)" style="flex:2"/>
+        <button class="btn p" id="txAdd">Add</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <h2 style="margin-bottom:0">All Transactions</h2>
+        <button class="btn danger" id="clearTxBtn" style="font-size:.72rem;padding:.25rem .6rem">Clear all</button>
+      </div>
+      <div id="allTxList" class="tl" style="max-height:420px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS TAB -->
+<div class="view" id="tab-settings">
+  <div class="sg">
+    <div class="card">
+      <h2>🔑 Gemini API Key (Jarvis)</h2>
+      <p class="hint">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a>. Must start with <code>AIzaSy</code>. Stored only in your browser.</p>
+      <label>API Key</label>
+      <input type="password" id="geminiKey" placeholder="AIzaSy…"/>
+      <div style="display:flex;gap:.4rem;margin-top:.65rem;flex-wrap:wrap">
+        <button class="btn p" id="saveGemKey">Save</button>
+        <button class="btn" id="testGemKey">Test connection</button>
+        <button class="btn danger" id="clearGemKey" style="font-size:.72rem">Clear</button>
+      </div>
+      <div id="gemTestResult" style="font-size:.75rem;margin-top:.5rem"></div>
+    </div>
+
+    <div class="card">
+      <h2>📧 Gmail (Google OAuth)</h2>
+      <p class="hint">Uses Google Identity Services for secure browser-based OAuth. Only reads your emails — never modifies anything.</p>
+      <label>Google Client ID</label>
+      <input type="text" id="googleClientId" placeholder="225707757266-…apps.googleusercontent.com"/>
+      <p class="hint" style="margin-top:.5rem">Pre-filled from your project settings. If Gmail sign-in doesn't work, add <code>https://smartvision7862.github.io</code> to your Google OAuth Authorized origins in <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Console</a>.</p>
+      <button class="btn p" style="margin-top:.65rem" id="saveGoogleId">Save Client ID</button>
+    </div>
+
     <div class="card">
       <h2>🎤 Jarvis Voice</h2>
-      <p class="hint">Jarvis uses your Gemini API key with the Live API for real-time natural voice. Make sure the key is set above.</p>
-      <label for="jarvisVoice">Voice</label>
+      <label>Gemini voice</label>
       <select id="jarvisVoice">
         <option value="Charon">Charon (deep, calm)</option>
         <option value="Puck">Puck (energetic)</option>
@@ -294,285 +410,416 @@
         <option value="Kore">Kore (warm)</option>
         <option value="Fenrir">Fenrir (strong)</option>
       </select>
-      <button class="btn primary" style="margin-top:0.75rem" id="saveVoice">Save voice</button>
+      <label>Text response language</label>
+      <select id="jarvisLang">
+        <option value="en-US">English</option>
+        <option value="ar">Arabic</option>
+        <option value="hi">Hindi</option>
+      </select>
+      <button class="btn p" style="margin-top:.65rem" id="saveVoiceSettings">Save</button>
     </div>
+
+    <div class="card">
+      <h2>💬 WhatsApp (Twilio)</h2>
+      <p class="hint">Twilio credentials are stored below. These are only used when sending via the local server — they are never sent to any external service from this page.</p>
+      <label>Account SID</label>
+      <input type="text" id="twilioSid" placeholder="ACxxxxxxxxxx"/>
+      <label>Auth Token</label>
+      <input type="password" id="twilioToken" placeholder="auth_token"/>
+      <label>Twilio WhatsApp number</label>
+      <input type="text" id="twilioNum" placeholder="+14155238886"/>
+      <button class="btn p" style="margin-top:.65rem" id="saveTwilio">Save</button>
+    </div>
+
+    <div class="card">
+      <h2>🗑 Data Management</h2>
+      <p class="hint">All your data (tasks, transactions, messages) is stored only in your browser localStorage.</p>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.75rem">
+        <button class="btn danger" id="clearTasks">Clear all tasks</button>
+        <button class="btn danger" id="clearTransactions">Clear all transactions</button>
+        <button class="btn danger" id="clearMail">Clear saved mail</button>
+        <button class="btn danger" id="clearWa">Clear WhatsApp messages</button>
+      </div>
+    </div>
+
     <div class="card">
       <h2>ℹ About</h2>
-      <p class="hint" style="margin-top:0">This is the <b>static GitHub Pages</b> version of Agentic OS. All data is stored locally in your browser via <code>localStorage</code> — nothing is sent to any server except your API calls to Google Gemini.</p>
-      <p class="hint" style="margin-top:0.75rem">For the full experience (mail sync from Gmail, social scheduling, content sources), run the <b>Node.js backend</b> locally.</p>
+      <p class="hint">This is the <b>static GitHub Pages</b> version of Agentic OS. All features that require a backend (Gmail auto-sync, Twilio webhooks, social publishing) need the <b>Node.js local server</b> running.</p>
+      <p class="hint" style="margin-top:.75rem">Source: <a href="https://github.com/smartvision7862/agentic" target="_blank">github.com/smartvision7862/agentic</a></p>
     </div>
+  </div>
+</div>
+
+<!-- Add Transaction Modal -->
+<div id="txModal" class="modal">
+  <div class="card">
+    <button class="mc" id="txModalClose">×</button>
+    <h2>Add Transaction</h2>
+    <div class="row">
+      <select id="txType2" style="flex:none;width:auto">
+        <option value="expense">Expense</option>
+        <option value="income">Income</option>
+      </select>
+    </div>
+    <label>Amount</label><input type="number" id="txAmt2" placeholder="0.00"/>
+    <label>Category</label><input type="text" id="txCat2" placeholder="Food, Travel, Salary…"/>
+    <label>Note</label><input type="text" id="txDesc2" placeholder="optional"/>
+    <button class="btn p" id="txAdd2" style="margin-top:.75rem">Add</button>
   </div>
 </div>
 
 <div id="toast"></div>
 
-<!-- Add Mail modal -->
-<div id="mailModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;">
-  <div class="card" style="width:480px;max-width:96vw;position:relative;">
-    <h2>Add Mail</h2>
-    <button id="mailModalClose" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">×</button>
-    <label for="mailFrom">From</label><input type="text" id="mailFrom" placeholder="John Doe <john@example.com>"/>
-    <label for="mailSub">Subject</label><input type="text" id="mailSub" placeholder="Subject"/>
-    <label for="mailSnip">Snippet / body</label><textarea id="mailSnip" rows="4" placeholder="Paste the email body here…"></textarea>
-    <button class="btn primary" id="mailAdd" style="margin-top:0.75rem">Add mail</button>
-  </div>
-</div>
-
 <script type="module" src="./globe.js"></script>
 <script>
-// ── State ─────────────────────────────────────────────────────
+// ══ Storage ═══════════════════════════════════════════════════
 const DB = {
-  get: (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } },
-  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+  get:(k,d)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d}catch{return d}},
+  set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),
+  del:(k)=>localStorage.removeItem(k)
 };
-const $ = (id) => document.getElementById(id);
+const $=id=>document.getElementById(id);
 
-// ── Toast ─────────────────────────────────────────────────────
-let toastTimer;
-function toast(msg, type = 'ok') {
-  const el = $('toast');
-  el.textContent = msg;
-  el.className = `show ${type}`;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.className = '', 3000);
-}
+// ══ Toast ══════════════════════════════════════════════════════
+let _tt;
+function toast(m,t='ok'){const e=$('toast');e.textContent=m;e.className='show '+t;clearTimeout(_tt);_tt=setTimeout(()=>e.className='',3200);}
 
-// ── Tabs ──────────────────────────────────────────────────────
-document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
-  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-  document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+// ══ Tabs ═══════════════════════════════════════════════════════
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
-  $(`tab-${t.dataset.tab}`).classList.add('active');
+  $('tab-'+t.dataset.tab).classList.add('active');
 }));
 
-// ── API Key ────────────────────────────────────────────────────
-function getApiKey() { return DB.get('gemini_api_key', '') || ''; }
-function setApiKey(k) { DB.set('gemini_api_key', k); updateApiStatus(); }
-function updateApiStatus() {
-  const k = getApiKey();
-  const el = $('apiStatus');
-  if (k) { el.textContent = '✓ Gemini Active'; el.className = 'api-status ok'; $('setupBanner').style.display = 'none'; }
-  else { el.textContent = '⚡ Set API Key'; el.className = 'api-status err'; $('setupBanner').style.display = ''; }
+// ══ API Key ════════════════════════════════════════════════════
+function getKey(){return DB.get('gem_key','')||'';}
+function setKey(k){DB.set('gem_key',k);updateHeader();}
+function updateHeader(){
+  const k=getKey();
+  const el=$('jarvisKey');
+  if(k&&k.startsWith('AIza')){el.textContent='🤖 Jarvis: Active';el.className='pill ok';$('setupBanner').style.display='none';}
+  else{el.textContent='🤖 Jarvis: No key';el.className='pill err';$('setupBanner').style.display='';}
 }
-el('apiStatus')?.addEventListener('click', () => {
-  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-  document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+$('jarvisKey').addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
   document.querySelector('[data-tab=settings]').classList.add('active');
   $('tab-settings').classList.add('active');
 });
-function el(id) { return document.getElementById(id); }
 
-$('saveGeminiKey').addEventListener('click', () => {
-  const k = $('geminiKey').value.trim();
-  if (!k) { toast('Please enter a key', 'err'); return; }
-  setApiKey(k); toast('API key saved!');
+// Settings key management
+$('saveGemKey').addEventListener('click',()=>{const k=$('geminiKey').value.trim();if(!k){toast('Enter a key','err');return;}if(!k.startsWith('AIza')){toast('Key must start with AIzaSy','err');return;}setKey(k);toast('Jarvis activated ✓');});
+$('clearGemKey').addEventListener('click',()=>{DB.del('gem_key');$('geminiKey').value='';updateHeader();toast('Key cleared');});
+$('testGemKey').addEventListener('click',async()=>{
+  const k=$('geminiKey').value.trim()||getKey();
+  if(!k){toast('No key','err');return;}
+  $('gemTestResult').textContent='Testing…';
+  try{
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?key='+k);
+    if(r.ok){$('gemTestResult').style.color='var(--g)';$('gemTestResult').textContent='✓ Connected successfully!';}
+    else{const e=await r.json();$('gemTestResult').style.color='var(--r)';$('gemTestResult').textContent='Error: '+(e.error?.message||r.status);}
+  }catch(e){$('gemTestResult').style.color='var(--r)';$('gemTestResult').textContent='Network error: '+e.message;}
 });
-$('inlineSaveKey').addEventListener('click', () => {
-  const k = $('inlineBannerKey').value.trim();
-  if (!k) { toast('Please enter a key', 'err'); return; }
-  setApiKey(k); toast('API key saved! Tap the globe to speak.', 'ok');
-  $('geminiKey').value = k;
-});
-$('testGeminiKey').addEventListener('click', async () => {
-  const k = $('geminiKey').value.trim() || getApiKey();
-  if (!k) { toast('No key set', 'err'); return; }
-  try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${k}`);
-    if (r.ok) { toast('✓ Connection successful!', 'ok'); }
-    else { const e = await r.json(); toast('Error: ' + (e.error?.message || r.status), 'err'); }
-  } catch(e) { toast('Connection failed: ' + e.message, 'err'); }
-});
-$('saveVoice').addEventListener('click', () => { DB.set('jarvis_voice', $('jarvisVoice').value); toast('Voice saved'); });
+$('bannerSave').addEventListener('click',()=>{const k=$('bannerKey').value.trim();if(!k||!k.startsWith('AIza')){toast('Must start with AIzaSy','err');return;}setKey(k);$('geminiKey').value=k;toast('Jarvis activated ✓');});
+$('saveVoiceSettings').addEventListener('click',()=>{DB.set('jvoice',$('jarvisVoice').value);DB.set('jlang',$('jarvisLang').value);toast('Voice saved');});
+$('saveGoogleId').addEventListener('click',()=>{DB.set('gclient_id',$('googleClientId').value.trim());toast('Client ID saved');});
+$('saveTwilio').addEventListener('click',()=>{DB.set('tw_sid',$('twilioSid').value.trim());DB.set('tw_tok',$('twilioToken').value.trim());DB.set('tw_num',$('twilioNum').value.trim());toast('Twilio settings saved');});
 
-// ── Tasks ─────────────────────────────────────────────────────
-function saveTasks(tasks) { DB.set('tasks', tasks); }
-function loadTasks() { return DB.get('tasks', []); }
-function renderTasks() {
-  const list = $('taskList');
-  const tasks = loadTasks();
-  if (!tasks.length) { list.innerHTML = '<div class="empty">No tasks for today</div>'; return; }
-  list.innerHTML = tasks.map((t, i) => `
-    <div class="task-item ${t.done ? 'done' : ''}" data-i="${i}">
-      <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})"/>
-      <span class="task-title">${t.title}</span>
-      <button class="task-del" onclick="deleteTask(${i})">×</button>
-    </div>`).join('');
+// ══ Tasks ══════════════════════════════════════════════════════
+function getTasks(){return DB.get('tasks',[]);}
+function saveTasks(t){DB.set('tasks',t);}
+function renderTasks(){
+  const list=$('taskList');const tasks=getTasks();
+  $('taskCount').textContent=tasks.filter(t=>!t.done).length+' pending';
+  if(!tasks.length){list.innerHTML='<div class="empty" style="padding:.75rem">No tasks yet</div>';return;}
+  list.innerHTML=tasks.map((t,i)=>`<div class="tsk ${t.done?'done':''}" data-i="${i}">
+    <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${i})"/>
+    <span class="tsk-t">${esc(t.title)}</span>
+    <button class="tsk-del" onclick="delTask(${i})">×</button>
+  </div>`).join('');
 }
-window.toggleTask = (i) => { const tasks = loadTasks(); tasks[i].done = !tasks[i].done; saveTasks(tasks); renderTasks(); };
-window.deleteTask = (i) => { const tasks = loadTasks(); tasks.splice(i, 1); saveTasks(tasks); renderTasks(); };
-$('taskAdd').addEventListener('click', () => {
-  const v = $('taskInput').value.trim(); if (!v) return;
-  const tasks = loadTasks(); tasks.push({ title: v, done: false, date: new Date().toISOString().slice(0,10) });
-  saveTasks(tasks); renderTasks(); $('taskInput').value = '';
-});
-$('taskInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('taskAdd').click(); });
+window.toggleTask=i=>{const t=getTasks();t[i].done=!t[i].done;saveTasks(t);renderTasks();};
+window.delTask=i=>{const t=getTasks();t.splice(i,1);saveTasks(t);renderTasks();};
+$('taskAdd').addEventListener('click',()=>{const v=$('taskInput').value.trim();if(!v)return;const t=getTasks();t.push({title:v,done:false,date:td()});saveTasks(t);renderTasks();$('taskInput').value='';});
+$('taskInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('taskAdd').click();});
+$('clearTasks').addEventListener('click',()=>{if(!confirm('Clear all tasks?'))return;saveTasks([]);renderTasks();toast('Tasks cleared');});
 
-// ── Transactions ──────────────────────────────────────────────
-function saveTx(tx) { DB.set('transactions', tx); }
-function loadTx() { return DB.get('transactions', []); }
-function txInRange(tx, range) {
-  const d = tx.date; const today = new Date().toISOString().slice(0,10);
-  if (range === 'today') return d === today;
-  if (range === 'week') { const w = new Date(); w.setDate(w.getDate()-6); return d >= w.toISOString().slice(0,10); }
-  return d >= today.slice(0,7) + '-01';
+// ══ Transactions ════════════════════════════════════════════════
+let expRange='month';
+function getTx(){return DB.get('txs',[]);}
+function saveTx(t){DB.set('txs',t);}
+function td(){return new Date().toISOString().slice(0,10);}
+function inRange(t,r){
+  const d=t.date,today=td();
+  if(r==='today')return d===today;
+  if(r==='week'){const w=new Date();w.setDate(w.getDate()-6);return d>=w.toISOString().slice(0,10);}
+  return d>=today.slice(0,7)+'-01';
 }
-let expRange = 'month';
-function renderExpenses() {
-  const tx = loadTx().filter(t => txInRange(t, expRange));
-  const income = tx.filter(t => t.type === 'income').reduce((a,t) => a+t.amount, 0);
-  const expense = tx.filter(t => t.type === 'expense').reduce((a,t) => a+t.amount, 0);
-  const net = income - expense;
-  $('expRevenue').textContent = '₹' + income.toLocaleString();
-  $('expExpense').textContent = '₹' + expense.toLocaleString();
-  $('expNet').textContent = (net >= 0 ? '+' : '') + '₹' + net.toLocaleString();
-  const txList = $('txList');
-  if (!tx.length) { txList.innerHTML = '<div class="empty" style="padding:0.75rem;text-align:left;color:var(--muted);font-size:0.78rem;">No transactions</div>'; }
-  else txList.innerHTML = tx.slice(-10).reverse().map(t => `
-    <div class="tx-row">
-      <span>${t.desc || t.category}<span class="tx-cat"> · ${t.category}</span></span>
-      <span class="tx-amt ${t.type === 'income' ? 'pos' : 'neg'}">${t.type === 'income' ? '+' : '-'}₹${t.amount.toLocaleString()}</span>
-    </div>`).join('');
-  renderAllTx();
+function renderExpenses(){
+  const tx=getTx().filter(t=>inRange(t,expRange));
+  const inc=tx.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);
+  const exp=tx.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
+  const net=inc-exp;
+  $('expR').textContent='₹'+inc.toLocaleString();
+  $('expE').textContent='₹'+exp.toLocaleString();
+  $('expN').textContent=(net>=0?'+':'')+'₹'+net.toLocaleString();
+  const snap=$('txSnap');
+  if(!tx.length){snap.innerHTML='<div style="font-size:.75rem;color:var(--m);padding:.3rem">No transactions</div>';return;}
+  snap.innerHTML=tx.slice(-6).reverse().map(t=>`<div class="tr"><span>${esc(t.desc||t.cat)}<span class="tc"> · ${esc(t.cat)}</span></span><span class="ta ${t.type==='income'?'pos':'neg'}">${t.type==='income'?'+':'-'}₹${t.amount.toLocaleString()}</span></div>`).join('');
 }
-function renderAllTx() {
-  const all = loadTx().slice().reverse();
-  const el = $('allTxList');
-  if (!all.length) { el.innerHTML = '<div class="empty">No transactions yet</div>'; return; }
-  el.innerHTML = all.map((t,i) => `
-    <div class="tx-row">
-      <span>${t.desc || t.category}<span class="tx-cat"> · ${t.category} · ${t.date}</span></span>
-      <span class="tx-amt ${t.type === 'income' ? 'pos' : 'neg'}">${t.type === 'income' ? '+' : '-'}₹${t.amount.toLocaleString()}</span>
-    </div>`).join('');
+function renderAllTx(){
+  const all=getTx().slice().reverse();
+  const el=$('allTxList');
+  if(!all.length){el.innerHTML='<div class="empty">No transactions</div>';return;}
+  el.innerHTML=all.map((t,i)=>`<div class="tr"><span>${esc(t.desc||t.cat)}<span class="tc"> · ${esc(t.cat)} · ${t.date}</span></span><div style="display:flex;align-items:center;gap:.4rem"><span class="ta ${t.type==='income'?'pos':'neg'}">${t.type==='income'?'+':'-'}₹${t.amount.toLocaleString()}</span><button onclick="delTx(${all.length-1-i})" style="background:none;border:none;color:var(--m);cursor:pointer;font-size:.9rem">×</button></div></div>`).join('');
 }
-document.querySelectorAll('.range-tab').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.range-tab').forEach(x => x.classList.remove('active'));
-  b.classList.add('active'); expRange = b.dataset.range; renderExpenses();
-}));
-$('txAdd').addEventListener('click', () => {
-  const amount = parseFloat($('txAmount').value); if (!amount) { toast('Amount required', 'err'); return; }
-  const tx = loadTx();
-  tx.push({ type: $('txType').value, amount, category: $('txCategory').value || 'Other', desc: $('txDesc').value, date: new Date().toISOString().slice(0,10) });
-  saveTx(tx); renderExpenses(); toast('Transaction added');
-  $('txAmount').value = ''; $('txCategory').value = ''; $('txDesc').value = '';
-});
+window.delTx=i=>{const tx=getTx();tx.splice(i,1);saveTx(tx);renderExpenses();renderAllTx();};
+function addTx(type,amount,cat,desc){if(!amount){toast('Amount required','err');return;}const tx=getTx();tx.push({type,amount:parseFloat(amount),cat:cat||'Other',desc,date:td()});saveTx(tx);renderExpenses();renderAllTx();toast('Transaction added');}
+$('txAdd').addEventListener('click',()=>{addTx($('txType').value,parseFloat($('txAmt').value),$('txCat').value,$('txDesc').value);$('txAmt').value='';$('txCat').value='';$('txDesc').value='';});
+$('txAdd2').addEventListener('click',()=>{addTx($('txType2').value,parseFloat($('txAmt2').value),$('txCat2').value,$('txDesc2').value);$('txAmt2').value='';$('txCat2').value='';$('txModal').classList.remove('show');});
+$('addTxBtn').addEventListener('click',()=>$('txModal').classList.add('show'));
+$('txModalClose').addEventListener('click',()=>$('txModal').classList.remove('show'));
+$('clearTxBtn').addEventListener('click',()=>{if(!confirm('Clear all transactions?'))return;saveTx([]);renderExpenses();renderAllTx();toast('Cleared');});
+$('clearTransactions').addEventListener('click',()=>{if(!confirm('Clear all?'))return;saveTx([]);renderExpenses();renderAllTx();toast('Cleared');});
+document.querySelectorAll('.rtb').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.rtb').forEach(x=>x.classList.remove('active'));b.classList.add('active');expRange=b.dataset.range;renderExpenses();}));
 
-// ── Mail ──────────────────────────────────────────────────────
-function loadMail() { return DB.get('mail', []); }
-function saveMail(m) { DB.set('mail', m); }
-function renderMail() {
-  const mails = loadMail();
-  const el = $('mailList');
-  if (!mails.length) { el.innerHTML = '<div class="mail-empty">No mail. Click "+ Add mail" to paste a message.</div>'; return; }
-  el.innerHTML = mails.slice(-8).reverse().map(m => `
-    <div class="mail-item">
-      <div class="mail-from">${m.from}</div>
-      <div class="mail-sub">${m.subject}</div>
-      <div class="mail-snip">${m.snippet}</div>
-    </div>`).join('');
+// ══ Gmail (Google Identity Services) ═══════════════════════════
+const GAPI_SCOPES='https://www.googleapis.com/auth/gmail.readonly';
+let gapiInited=false,gsiInited=false,tokenClient;
+
+function loadGoogleLibs(){
+  return new Promise(resolve=>{
+    if(window.google&&window.gapi){resolve();return;}
+    let c=0;
+    const s1=document.createElement('script');s1.src='https://apis.google.com/js/api.js';
+    s1.onload=()=>{window.gapi.load('client',async()=>{await window.gapi.client.init({discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest']});gapiInited=true;c++;if(c===2)resolve();});};
+    document.head.appendChild(s1);
+    const s2=document.createElement('script');s2.src='https://accounts.google.com/gsi/client';
+    s2.onload=()=>{gsiInited=true;c++;if(c===2)resolve();};
+    document.head.appendChild(s2);
+  });
 }
-$('addMailBtn').addEventListener('click', () => { $('mailModal').style.display = 'flex'; });
-$('mailModalClose').addEventListener('click', () => { $('mailModal').style.display = 'none'; });
-$('mailAdd').addEventListener('click', () => {
-  const from = $('mailFrom').value.trim(), sub = $('mailSub').value.trim(), snip = $('mailSnip').value.trim();
-  if (!from || !sub) { toast('From and subject required', 'err'); return; }
-  const mail = loadMail();
-  mail.push({ from, subject: sub, snippet: snip, date: new Date().toISOString() });
-  saveMail(mail); renderMail();
-  $('mailFrom').value = ''; $('mailSub').value = ''; $('mailSnip').value = '';
-  $('mailModal').style.display = 'none'; toast('Mail added');
-});
 
-// ── Clear Data ─────────────────────────────────────────────────
-$('clearDataBtn').addEventListener('click', () => {
-  if (!confirm('Delete all local tasks, transactions and mail? (API key will be kept)')) return;
-  DB.set('tasks', []); DB.set('transactions', []); DB.set('mail', []);
-  renderTasks(); renderExpenses(); renderMail(); toast('Data cleared');
-});
+async function initGmail(){
+  await loadGoogleLibs();
+  const clientId=DB.get('gclient_id','')||'225707757266-lhdci24db6qr9k6g1c03o6aegp0nensd.apps.googleusercontent.com';
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:clientId,
+    scope:GAPI_SCOPES,
+    callback:async(resp)=>{
+      if(resp.error){toast('Gmail auth failed: '+resp.error,'err');return;}
+      DB.set('gtoken',resp.access_token);
+      DB.set('gtoken_exp',Date.now()+resp.expires_in*1000);
+      await loadGmailProfile();
+      await fetchMail();
+      updateGmailUI(true);
+    }
+  });
+}
 
-// ── Jarvis Text Chat ─────────────────────────────────────────
-async function jarvisChat(text) {
-  const key = getApiKey();
-  if (!key) { toast('Set your Gemini API key first in Settings', 'err'); return; }
-  if (!key.startsWith('AIza')) {
-    showReply('⚠ Wrong API key format. A Gemini API key must start with "AIzaSy…". Get one free at aistudio.google.com → Get API key → Create API key.');
-    toast('Invalid key — needs to start with AIzaSy', 'err');
-    return;
+async function loadGmailProfile(){
+  try{
+    const r=await fetch('https://www.googleapis.com/gmail/v1/users/me/profile',{headers:{Authorization:'Bearer '+DB.get('gtoken','')}});
+    const d=await r.json();
+    if(d.emailAddress){DB.set('gmail_email',d.emailAddress);}
+  }catch{}
+}
+
+async function fetchMail(max=20){
+  const tok=DB.get('gtoken','');if(!tok){toast('Sign in with Gmail first','err');return;}
+  try{
+    const r=await fetch(`https://www.googleapis.com/gmail/v1/users/me/messages?maxResults=${max}&labelIds=INBOX`,{headers:{Authorization:'Bearer '+tok}});
+    const d=await r.json();
+    if(d.error){if(d.error.code===401){updateGmailUI(false);DB.del('gtoken');toast('Gmail session expired. Please sign in again.','err');}else{toast('Gmail error: '+d.error.message,'err');}return;}
+    const msgs=await Promise.all((d.messages||[]).slice(0,max).map(async m=>{
+      const mr=await fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,{headers:{Authorization:'Bearer '+tok}});
+      const md=await mr.json();
+      const h=md.payload?.headers||[];
+      const from=h.find(x=>x.name==='From')?.value||'Unknown';
+      const subject=h.find(x=>x.name==='Subject')?.value||'(no subject)';
+      const snippet=(md.snippet||'').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+      return{from,subject,snippet,date:h.find(x=>x.name==='Date')?.value||''};
+    }));
+    DB.set('gmail_msgs',msgs);
+    renderMail(msgs);
+    toast('Mail loaded: '+msgs.length+' messages');
+  }catch(e){toast('Fetch error: '+e.message,'err');}
+}
+
+function renderMail(msgs){
+  msgs=msgs||DB.get('gmail_msgs',[]);
+  const el=$('mailList');
+  const el2=$('fullMailList');
+  if(!msgs||!msgs.length){
+    const empty='<div class="me">No emails found.</div>';
+    el.innerHTML=empty;if(el2)el2.innerHTML=empty;return;
   }
-  setJarvisState('thinking', 'Thinking…');
-  const context = {
-    tasks: loadTasks().map(t => t.title + (t.done ? ' (done)' : '')).join(', ') || 'none',
-    mail: loadMail().slice(-3).map(m => 'From ' + m.from + ': ' + m.subject).join('; ') || 'none',
-    expenses: (() => { const tx = loadTx(); const i = tx.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0); const e = tx.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0); return 'income Rs' + i + ', expenses Rs' + e; })()
-  };
-  const prompt = 'You are JARVIS, an AI assistant. Context — Tasks: ' + context.tasks + '. Mail: ' + context.mail + '. ' + context.expenses + '. Reply in 1-2 short sentences, no markdown. User: ' + text;
-  try {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    const data = await r.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'I had trouble responding.';
-    showReply(reply);
-    speakBrowser(reply);
-    setJarvisState('idle', 'Idle');
-  } catch(e) { toast('Error: ' + e.message, 'err'); setJarvisState('idle', 'Idle'); }
-}
-function setJarvisState(state, label) {
-  const el = $('jarvisStatus'); el.textContent = label;
-  el.className = 'jarvis-status ' + state;
-  window.dispatchEvent(new CustomEvent('assistant:state', { detail: { state } }));
-}
-function showReply(text) {
-  const el = $('jarvisReply');
-  el.textContent = text; el.classList.add('show');
-}
-function speakBrowser(text) {
-  if (!('speechSynthesis' in window)) return;
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1.02; u.pitch = 0.93;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(u);
+  const html=msgs.map(m=>`<div class="mi"><div class="mf">${esc(m.from.replace(/<.*>/,'').trim())}</div><div class="ms">${esc(m.subject)}</div><div class="mb">${esc(m.snippet)}</div></div>`).join('');
+  el.innerHTML=html;if(el2)el2.innerHTML=html;
+  updateGmailUI(true);
 }
 
-// ── Jarvis Voice (browser SpeechRecognition) ──────────────────
-let isListening = false;
-$('globeClick').addEventListener('click', () => {
-  if (!getApiKey()) { toast('Set your Gemini API key first (see Settings)', 'err'); return; }
-  if (isListening) { stopListening(); return; }
-  startListening();
+function updateGmailUI(connected){
+  const badge=$('gmailStatusBadge');const emailEl=$('gmailEmail');const info=$('gmailInfo');
+  const outBtn=$('gmailSignOut');const inBtn=$('gmailSignIn');
+  const hdrBadge=$('gmailBadge');const refBtn=$('gmailRefreshBtn');
+  if(connected){
+    badge.textContent='Connected';badge.className='badge ok';
+    const em=DB.get('gmail_email','');emailEl.textContent=em?'Signed in as '+em:'';
+    info.style.display='block';outBtn.style.display='';inBtn.style.display='none';
+    hdrBadge.textContent='📧 Gmail: '+( em.split('@')[0]||'Connected');hdrBadge.className='pill ok';
+    if(refBtn)refBtn.style.display='';
+  }else{
+    badge.textContent='Not connected';badge.className='badge err';
+    emailEl.textContent='';info.style.display='none';outBtn.style.display='none';inBtn.style.display='';
+    hdrBadge.textContent='📧 Gmail: Not connected';hdrBadge.className='pill warn';
+    if(refBtn)refBtn.style.display='none';
+  }
+}
+
+$('gmailSignIn').addEventListener('click',async()=>{await initGmail();tokenClient.requestAccessToken({prompt:'consent'});});
+$('gmailConnectBtn').addEventListener('click',async()=>{
+  const tok=DB.get('gtoken','');
+  if(tok&&Date.now()<DB.get('gtoken_exp',0)){fetchMail();}
+  else{await initGmail();tokenClient.requestAccessToken({prompt:'consent'});}
 });
-function startListening() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { toast('Browser speech not supported. Type instead.', 'err'); return; }
-  const r = new SR(); r.continuous = false; r.interimResults = false; r.lang = 'en-US';
-  isListening = true;
-  setJarvisState('listening', 'Listening…');
-  window.dispatchEvent(new CustomEvent('assistant:level', { detail: { level: 0.6 } }));
-  r.onresult = (e) => {
-    isListening = false;
-    const said = e.results[0][0].transcript.trim();
-    if (!said) { setJarvisState('idle', 'Idle'); return; }
-    $('jarvisInput').value = said;
-    jarvisChat(said);
-  };
-  r.onerror = (e) => { isListening = false; if (e.error !== 'no-speech') toast('Mic error: ' + e.error, 'err'); setJarvisState('idle', 'Idle'); window.dispatchEvent(new CustomEvent('assistant:level', { detail: { level: 0 } })); };
-  r.onend = () => { isListening = false; window.dispatchEvent(new CustomEvent('assistant:level', { detail: { level: 0 } })); };
+$('gmailRefreshBtn')?.addEventListener('click',()=>fetchMail());
+$('fetchMoreMail')?.addEventListener('click',()=>fetchMail(40));
+$('gmailSignOut').addEventListener('click',()=>{google.accounts.oauth2.revoke(DB.get('gtoken',''));DB.del('gtoken');DB.del('gmail_msgs');DB.del('gmail_email');updateGmailUI(false);renderMail([]);toast('Signed out of Gmail');});
+$('clearMail').addEventListener('click',()=>{DB.del('gmail_msgs');renderMail([]);updateGmailUI(false);toast('Mail cleared');});
+
+// ══ WhatsApp ════════════════════════════════════════════════════
+function getWaMsgs(){return DB.get('wa_msgs',[]);}
+function saveWaMsgs(m){DB.set('wa_msgs',m);}
+function renderWaMsgs(){
+  const msgs=getWaMsgs();const el=$('waMsgs');
+  if(!msgs.length){el.innerHTML='<div class="wa-empty">No messages yet.</div>';return;}
+  el.innerHTML=msgs.map(m=>`<div class="wa-msg ${m.dir}"><div>${esc(m.text)}</div><div class="wt">${m.dir==='out'?'You → '+m.to:m.from} · ${m.time}</div></div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+function addWaMsg(text,dir,to,from){
+  const msgs=getWaMsgs();
+  msgs.push({text,dir,to:to||'',from:from||'',time:new Date().toLocaleTimeString()});
+  saveWaMsgs(msgs);renderWaMsgs();
+}
+
+$('waSendBtn').addEventListener('click',async()=>{
+  const to=$('waTo').value.trim();const msg=$('waMsg').value.trim();
+  if(!to||!msg){toast('Fill in number and message','err');return;}
+  $('waSendStatus').textContent='Sending via local server…';
+  try{
+    const r=await fetch('http://localhost:3950/api/whatsapp/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,message:msg})});
+    if(r.ok){addWaMsg(msg,'out',to);$('waMsg').value='';$('waSendStatus').textContent='✓ Sent';toast('WhatsApp message sent!');}
+    else{const d=await r.json();$('waSendStatus').style.color='var(--r)';$('waSendStatus').textContent='Error: '+(d.error||r.status);}
+  }catch{$('waSendStatus').style.color='var(--r)';$('waSendStatus').textContent='⚠ Local server not running. Start it with: npm start in /content-os';}
+});
+$('waCopyBtn').addEventListener('click',()=>{
+  const sid=DB.get('tw_sid','')||'YOUR_TWILIO_SID';
+  const tok=DB.get('tw_tok','')||'YOUR_AUTH_TOKEN';
+  const from=DB.get('tw_num','')||'+14155238886';
+  const to=$('waTo').value.trim()||'+YOUR_NUMBER';
+  const msg=$('waMsg').value.trim()||'Hello from Agentic OS!';
+  const cmd='curl -X POST https://api.twilio.com/2010-04-01/Accounts/'+sid+'/Messages.json --data-urlencode "From=whatsapp:'+from+'" --data-urlencode "To=whatsapp:'+to+'" --data-urlencode "Body='+msg+'" -u '+sid+':'+tok;
+  navigator.clipboard.writeText(cmd).then(()=>toast('curl command copied!'));
+});
+$('waQuickSend').addEventListener('click',()=>{const v=$('waQuickMsg').value.trim();if(!v)return;addWaMsg(v,'out','',DB.get('gmail_email','')||'You');$('waQuickMsg').value='';});
+$('waQuickMsg').addEventListener('keydown',e=>{if(e.key==='Enter')$('waQuickSend').click();});
+$('clearWa').addEventListener('click',()=>{saveWaMsgs([]);renderWaMsgs();toast('Cleared');});
+$('waBadge').addEventListener('click',()=>{document.querySelector('[data-tab=whatsapp]').click();});
+
+// Poll local server for WA messages when running locally
+async function pollWa(){
+  try{
+    const r=await fetch('http://localhost:3950/api/whatsapp/messages',{signal:AbortSignal.timeout(2000)});
+    if(r.ok){const d=await r.json();if(d.messages?.length){d.messages.forEach(m=>addWaMsg(m.body,'in','',m.from));}}
+  }catch{}
+}
+setInterval(pollWa,10000);
+
+// ══ Jarvis AI ═══════════════════════════════════════════════════
+function getCtx(){
+  const tasks=getTasks().map(t=>t.title+(t.done?' (done)':'')).join(', ')||'none';
+  const mail=(DB.get('gmail_msgs',[])||[]).slice(0,4).map(m=>'From '+m.from.replace(/<.*>/,'').trim()+': '+m.subject).join('; ')||'none';
+  const tx=getTx();const i=tx.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);const e=tx.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
+  return {tasks,mail,expenses:'income Rs'+i+', expenses Rs'+e};
+}
+
+async function askJarvis(text){
+  const key=getKey();
+  if(!key){toast('Set Gemini API key in Settings','err');return;}
+  if(!key.startsWith('AIza')){showReply('⚠ API key must start with AIzaSy. Get one at aistudio.google.com');toast('Invalid key format','err');return;}
+  setJS('thinking','Thinking…');
+  const ctx=getCtx();
+  const prompt='You are JARVIS, an AI butler for Agentic OS. Reply in 1-2 short spoken sentences, no markdown or emoji. Context — Tasks: '+ctx.tasks+'. Recent mail: '+ctx.mail+'. Finances: '+ctx.expenses+'. User says: '+text;
+  try{
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+key,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+    });
+    const d=await r.json();
+    if(!r.ok||d.error){const em=(d.error&&d.error.message)||'HTTP '+r.status;showReply('Error: '+em);toast('Gemini: '+em,'err');setJS('idle','Idle');return;}
+    const reply=(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&d.candidates[0].content.parts[0].text)||'No reply.';
+    showReply(reply.trim());speak(reply.trim());setJS('idle','Idle');
+  }catch(e){showReply('Network error: '+e.message);toast('Error: '+e.message,'err');setJS('idle','Idle');}
+}
+function setJS(state,label){const el=$('jarvisStatus');el.textContent=label;el.className='js '+state;window.dispatchEvent(new CustomEvent('assistant:state',{detail:{state}}));}
+function showReply(t){const el=$('jarvisReply');el.textContent=t;el.classList.add('show');}
+function speak(text){if(!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(text);const lang=DB.get('jlang','en-US');u.lang=lang;u.rate=1.02;u.pitch=0.92;window.speechSynthesis.cancel();window.speechSynthesis.speak(u);}
+
+// ── Voice input
+let listening=false;
+$('globeClick').addEventListener('click',()=>{
+  if(!getKey()){toast('Set Gemini API key first (see Settings)','err');return;}
+  if(listening){stopListen();return;}
+  startListen();
+});
+function startListen(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Browser speech not supported — type instead','err');return;}
+  const r=new SR();r.continuous=false;r.interimResults=false;r.lang=DB.get('jlang','en-US');
+  listening=true;setJS('listening','Listening…');
+  window.dispatchEvent(new CustomEvent('assistant:level',{detail:{level:.65}}));
+  r.onresult=e=>{listening=false;window.dispatchEvent(new CustomEvent('assistant:level',{detail:{level:0}}));const said=e.results[0][0].transcript.trim();if(!said){setJS('idle','Idle');return;}$('jarvisInput').value=said;askJarvis(said);};
+  r.onerror=e=>{listening=false;if(e.error!=='no-speech')toast('Mic: '+e.error,'err');setJS('idle','Idle');window.dispatchEvent(new CustomEvent('assistant:level',{detail:{level:0}}));};
+  r.onend=()=>{if(listening){listening=false;setJS('idle','Idle');window.dispatchEvent(new CustomEvent('assistant:level',{detail:{level:0}}));}};
   r.start();
 }
-function stopListening() { isListening = false; setJarvisState('idle', 'Idle'); window.dispatchEvent(new CustomEvent('assistant:level', { detail: { level: 0 } })); }
+function stopListen(){listening=false;setJS('idle','Idle');window.dispatchEvent(new CustomEvent('assistant:level',{detail:{level:0}}));}
+$('jarvisSend').addEventListener('click',()=>{const v=$('jarvisInput').value.trim();if(!v)return;$('jarvisInput').value='';askJarvis(v);});
+$('jarvisInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('jarvisSend').click();});
 
-$('jarvisSend').addEventListener('click', () => { const v = $('jarvisInput').value.trim(); if (!v) return; $('jarvisInput').value = ''; jarvisChat(v); });
-$('jarvisInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('jarvisSend').click(); });
+// ══ Utilities ══════════════════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-// ── Init ──────────────────────────────────────────────────────
-const savedKey = getApiKey();
-if (savedKey) { $('geminiKey').value = savedKey; }
-if (DB.get('jarvis_voice', '')) { $('jarvisVoice').value = DB.get('jarvis_voice', 'Charon'); }
-updateApiStatus();
-renderTasks();
-renderExpenses();
-renderMail();
-$('mailModal').style.display = 'none';
+// ══ Init ═══════════════════════════════════════════════════════
+(()=>{
+  // Load saved settings into forms
+  const k=getKey();if(k)$('geminiKey').value=k;
+  const gcid=DB.get('gclient_id','');$('googleClientId').value=gcid||'225707757266-lhdci24db6qr9k6g1c03o6aegp0nensd.apps.googleusercontent.com';
+  const v=DB.get('jvoice','Charon');$('jarvisVoice').value=v;
+  const l=DB.get('jlang','en-US');$('jarvisLang').value=l;
+  const sid=DB.get('tw_sid','');if(sid)$('twilioSid').value=sid;
+  const tok=DB.get('tw_tok','');if(tok)$('twilioToken').value=tok;
+  const num=DB.get('tw_num','');$('twilioNum').value=num||'+14155238886';
+  $('waNumber').value=num||'+14155238886';
+
+  updateHeader();
+  renderTasks();
+  renderExpenses();
+  renderAllTx();
+  renderWaMsgs();
+
+  // Load saved Gmail messages
+  const savedMail=DB.get('gmail_msgs',[]);
+  if(savedMail&&savedMail.length){renderMail(savedMail);updateGmailUI(true);}
+  else updateGmailUI(false);
+
+  // Poll local server health
+  fetch('http://localhost:3950/api/health',{signal:AbortSignal.timeout(2000)})
+    .then(r=>r.ok&&toast('✓ Local server detected on port 3950'))
+    .catch(()=>{});
+})();
 </script>
 </body>
 </html>

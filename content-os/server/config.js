@@ -58,6 +58,10 @@ export const config = {
     imageModel: process.env.OPENROUTER_IMAGE_MODEL ?? "google/gemini-2.5-flash-image",
     timezone: process.env.DEFAULT_TIMEZONE ?? "Asia/Kolkata",
   },
+
+  twilioSid: process.env.TWILIO_ACCOUNT_SID ?? "",
+  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ?? "",
+  twilioWhatsAppFrom: process.env.TWILIO_WHATSAPP_FROM ?? "whatsapp:+14155238886",
 };
 
 export function serviceStatus() {
