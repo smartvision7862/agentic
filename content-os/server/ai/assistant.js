@@ -256,3 +256,5 @@ export async function askAssistant(text, history = []) {
   }
   return final;
 }
+
+export { systemPrompt, TOOLS as genaiTools, runTool };

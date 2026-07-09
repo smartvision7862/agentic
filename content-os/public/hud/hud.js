@@ -210,14 +210,16 @@ $("#taskAdd")?.addEventListener("click", addTask);
 $("#taskInput")?.addEventListener("keydown", (e) => { if (e.key === "Enter") addTask(); });
 
 // ── Jarvis live voice assistant ──────────────────────────────────
-// Continuous conversation: tap globe → record → transcribe (OpenRouter) →
-// agentic chat → speak reply → auto-listen again until tapped to stop.
 const voice = {
-  conversing: false,   // continuous loop active
-  recording: false,
-  stream: null, audioCtx: null, analyser: null, recorder: null, levelRAF: 0,
+  active: false,
+  stream: null,
+  audioCtx: null,
+  workletNode: null,
+  analyser: null,
+  ws: null,
+  levelRAF: 0,
+  nextPlayTime: 0,
 };
-const VAD = { speakThresh: 0.045, silenceMs: 1300, noSpeechMs: 7000, maxTurnMs: 20000 };
 
 function setAssistantState(state, label) {
   const el = $("#assistantStatus");
@@ -233,67 +235,6 @@ function showReply(html) {
   box.classList.add("show");
 }
 
-function blobToBase64(blob) {
-  return new Promise((resolve) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(String(fr.result).split(",")[1] || "");
-    fr.readAsDataURL(blob);
-  });
-}
-
-// Speak a reply, then resolve when playback ends (so the loop can continue).
-async function speak(text) {
-  if (!text) return;
-  setAssistantState("speaking", "Speaking…");
-  if (hudState.ttsProvider === "openrouter") {
-    try {
-      const r = await api("/api/assistant/speak", { method: "POST", body: { text } });
-      await new Promise((resolve) => {
-        const audio = new Audio(`data:${r.mime};base64,${r.audio}`);
-        audio.onended = audio.onerror = resolve;
-        audio.play().catch(resolve);
-      });
-      setAssistantState("idle", "Idle");
-      return;
-    } catch { /* fall back to browser voice */ }
-  }
-  if ("speechSynthesis" in window) {
-    await new Promise((resolve) => {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.02; u.pitch = 0.95;
-      u.onend = u.onerror = resolve;
-      window.speechSynthesis.speak(u);
-    });
-  }
-  setAssistantState("idle", "Idle");
-}
-
-// Reveal text at a natural reading pace so an instant reply doesn't flash in
-// all at once ("fast, but not too fast"). Resolves when fully typed.
-function typeOut(el, text) {
-  return new Promise((resolve) => {
-    el.textContent = "";
-    const chars = [...(text || "")];
-    if (!chars.length) return resolve();
-    let i = 0;
-    const step = Math.max(1, Math.round(chars.length / 90)); // ~90 ticks total
-    const tick = () => {
-      i += step;
-      el.textContent = chars.slice(0, i).join("");
-      const box = $("#assistantReply");
-      box.scrollTop = box.scrollHeight;
-      if (i < chars.length) setTimeout(tick, 16);
-      else resolve();
-    };
-    tick();
-  });
-}
-
-// One assistant turn over the streaming endpoint. `speakReply` is true for voice
-// turns (auto re-listen) and false for typed turns (silent, fast text).
-// When Jarvis mutates data via tools, reflect it in the HUD immediately so the
-// user sees the change live (e.g. a checked-off task) without a manual refresh.
 function refreshAfterActions(final) {
   const actions = final?.actions || [];
   const TASK_ACTIONS = ["add_task", "complete_task", "delete_task"];
@@ -301,248 +242,127 @@ function refreshAfterActions(final) {
   if (final?.draftId) toast("Draft saved to the Studio.", "ok");
 }
 
-async function sendToAssistant(text, { speakReply = false } = {}) {
-  if (hudState.busy) return;
-  hudState.busy = true;
-  logChat("user", text);
-  setAssistantState("thinking", "Thinking…");
-  showReply(`<div class="hud-empty">“${escapeHtml(text)}”…</div>`);
-
+async function startConversation() {
+  if (voice.active) return;
+  
   try {
-    const res = await fetch("/api/assistant/stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, history: hudState.history }),
-    });
-    if (!res.ok || !res.body) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${res.status}`);
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let final = null;
-    let acked = false;
-
-    const handle = (ev) => {
-      if (ev.phase === "ack") {
-        acked = true;
-        setAssistantState("thinking", "Working…");
-        showReply(`<div class="ack-note">${escapeHtml(ev.reply)}</div>`);
-      } else if (ev.phase === "error") {
-        throw new Error(ev.error || "Assistant error");
-      } else if (ev.phase === "final") {
-        final = ev;
-      }
-    };
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      let nl;
-      while ((nl = buffer.indexOf("\n")) !== -1) {
-        const line = buffer.slice(0, nl).trim();
-        buffer = buffer.slice(nl + 1);
-        if (line) handle(JSON.parse(line));
-      }
-    }
-    if (buffer.trim()) handle(JSON.parse(buffer.trim()));
-
-    if (!final) throw new Error("No reply");
-    const reply = final.reply || (final.type === "image" ? "Here is the image." : "");
-
-    // Render the answer with a typewriter reveal, then append any image.
-    const box = $("#assistantReply");
-    box.classList.add("show");
-    box.innerHTML = `<div class="reply-text"></div>`;
-    setAssistantState("idle", "Idle");
-    await typeOut($(".reply-text", box), reply);
-    if (final.type === "image" && final.imagePath) {
-      const img = document.createElement("img");
-      img.src = final.imagePath; img.alt = "generated";
-      box.appendChild(img);
-    }
-
-    logChat("assistant", reply, final.type === "image" && final.imagePath ? { imagePath: final.imagePath } : {});
-    hudState.history.push({ role: "user", content: text }, { role: "assistant", content: reply });
-    hudState.history = hudState.history.slice(-8);
-
-    refreshAfterActions(final);
-
-    if (speakReply) await speak(reply);
+    voice.stream = await navigator.mediaDevices.getUserMedia({ audio: {
+      sampleRate: 16000,
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+    }});
   } catch (e) {
-    showReply(`<div class="hud-empty">${escapeHtml(e.message)}</div>`);
-    setAssistantState("idle", "Idle");
-    toast(e.message, "error");
-  } finally {
-    hudState.busy = false;
-  }
-}
-
-// Record one turn: stream mic to an analyser (drives the globe waves), detect
-// end-of-speech via simple VAD, then transcribe and hand off to the assistant.
-async function recordTurn() {
-  if (voice.recording) return;
-  try {
-    voice.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch {
     toast("Microphone blocked — type your request instead", "error");
-    stopConversation();
-    $("#assistantInput")?.focus();
     return;
   }
-  voice.recording = true;
+  
+  voice.active = true;
   setAssistantState("listening", "Listening…");
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const useBrowserSTT = hudState.ttsProvider === "browser" && !!SpeechRecognition;
-
-  voice.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  $("#assistantReply").innerHTML = "";
+  
+  voice.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
   const src = voice.audioCtx.createMediaStreamSource(voice.stream);
+  
   voice.analyser = voice.audioCtx.createAnalyser();
   voice.analyser.fftSize = 1024;
   src.connect(voice.analyser);
-  const buf = new Uint8Array(voice.analyser.fftSize);
-
-  const started = Date.now();
-  let lastVoice = 0; let sawVoice = false; let stopped = false;
-
-  const cleanupAudio = () => {
-    try { voice.stream.getTracks().forEach((t) => t.stop()); } catch {}
-    try { voice.audioCtx.close(); } catch {}
+  
+  await voice.audioCtx.audioWorklet.addModule('/hud/pcm-worklet.js');
+  voice.workletNode = new AudioWorkletNode(voice.audioCtx, 'pcm-capture-processor');
+  src.connect(voice.workletNode);
+  
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  voice.ws = new WebSocket(`${protocol}//${window.location.host}/live`);
+  voice.ws.binaryType = "arraybuffer";
+  
+  voice.workletNode.port.onmessage = (e) => {
+    if (voice.ws && voice.ws.readyState === WebSocket.OPEN) {
+      voice.ws.send(e.data); // Int16Array buffer sent as ArrayBuffer
+    }
   };
-
-  const finish = () => {
-    if (stopped) return; stopped = true;
-    cancelAnimationFrame(voice.levelRAF);
-  };
-
-  if (useBrowserSTT) {
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    
-    recognition.onresult = async (event) => {
-      finish(); cleanupAudio();
-      voice.recording = false; setLevel(0);
-      const text = event.results[0][0].transcript;
-      const said = (text || "").trim();
-      
-      if (!said) { setAssistantState("idle", "Idle"); if (voice.conversing) recordTurn(); return; }
-      if (/^\s*(stop|cancel|that's all|thank you,? jarvis)\.?\s*$/i.test(said)) { stopConversation(); return; }
-      
-      setAssistantState("thinking", "Working…");
-      $("#assistantInput").value = said;
-      await sendToAssistant(said, { speakReply: true });
-      if (voice.conversing) recordTurn();
-    };
-    
-    recognition.onerror = (e) => {
-      if (e.error !== "no-speech") toast("Speech recognition error: " + e.error, "error");
-      finish(); cleanupAudio();
-      voice.recording = false; setLevel(0);
-      setAssistantState("idle", "Idle");
-      stopConversation();
-    };
-    
-    recognition.onend = () => {
-      if (voice.recording) {
-        finish(); cleanupAudio();
-        voice.recording = false; setLevel(0);
-        setAssistantState("idle", "Idle");
-        if (voice.conversing) recordTurn(); else stopConversation();
-      }
-    };
-
-    const loop = () => {
-      if (stopped) return;
-      voice.analyser.getByteTimeDomainData(buf);
-      let sum = 0;
-      for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
-      setLevel(Math.min(1, Math.sqrt(sum / buf.length) * 4));
-      voice.levelRAF = requestAnimationFrame(loop);
-    };
-
-    recognition.start();
-    voice.levelRAF = requestAnimationFrame(loop);
-  } else {
-    const chunks = [];
-    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
-    voice.recorder = new MediaRecorder(voice.stream, { mimeType: mime });
-    voice.recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-
-    const finishRecorder = () => {
-      finish();
-      try { voice.recorder.state !== "inactive" && voice.recorder.stop(); } catch {}
-    };
-
-    const loop = () => {
-      if (stopped) return;
-      voice.analyser.getByteTimeDomainData(buf);
-      let sum = 0;
-      for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
-      const rms = Math.sqrt(sum / buf.length);
-      setLevel(Math.min(1, rms * 4));
-      const now = Date.now();
-      if (rms > VAD.speakThresh) { sawVoice = true; lastVoice = now; }
-      const silentFor = now - (lastVoice || started);
-      if (sawVoice && silentFor > VAD.silenceMs) return finishRecorder();
-      if (!sawVoice && now - started > VAD.noSpeechMs) return finishRecorder();
-      if (now - started > VAD.maxTurnMs) return finishRecorder();
-      voice.levelRAF = requestAnimationFrame(loop);
-    };
-
-    voice.recorder.onstop = async () => {
-      cleanupAudio();
-      voice.recording = false;
-      setLevel(0);
-      const blob = new Blob(chunks, { type: "audio/webm" });
-      if (!sawVoice || blob.size < 1200) {
-        setAssistantState("idle", "Idle");
-        if (voice.conversing) toast("Didn't catch that — tap to try again");
-        stopConversation();
-        return;
-      }
-      setAssistantState("thinking", "Transcribing…");
+  
+  voice.ws.onmessage = async (e) => {
+    if (typeof e.data === "string") {
       try {
-        const b64 = await blobToBase64(blob);
-        const { text } = await api("/api/assistant/transcribe", { method: "POST", body: { audio: b64, format: "webm" } });
-        const said = (text || "").trim();
-        if (!said) { setAssistantState("idle", "Idle"); if (voice.conversing) recordTurn(); return; }
-        if (/^\s*(stop|cancel|that's all|thank you,? jarvis)\.?\s*$/i.test(said)) { stopConversation(); return; }
-        $("#assistantInput").value = said;
-        await sendToAssistant(said, { speakReply: true });
-        if (voice.conversing) recordTurn();
-      } catch (e) {
-        toast(e.message, "error");
-        setAssistantState("idle", "Idle");
-        stopConversation();
+        const msg = JSON.parse(e.data);
+        if (msg.type === "text") {
+          const box = $("#assistantReply");
+          if (!box.classList.contains("show")) {
+            box.innerHTML = `<div class="reply-text"></div>`;
+            box.classList.add("show");
+          }
+          const textEl = $(".reply-text", box);
+          textEl.textContent += msg.text;
+          box.scrollTop = box.scrollHeight;
+        } else if (msg.type === "state") {
+          setAssistantState(msg.state, msg.label);
+        } else if (msg.type === "actions") {
+          refreshAfterActions(msg);
+        } else if (msg.type === "error") {
+          toast(msg.message, "error");
+        } else if (msg.type === "clear_text") {
+          $("#assistantReply").innerHTML = "";
+          $("#assistantReply").classList.remove("show");
+        }
+      } catch (err) {}
+    } else {
+      // Binary data = PCM 24kHz audio from Gemini
+      setAssistantState("speaking", "Speaking…");
+      const pcm16 = new Int16Array(e.data);
+      const audioBuffer = voice.audioCtx.createBuffer(1, pcm16.length, 24000);
+      const channelData = audioBuffer.getChannelData(0);
+      for (let i = 0; i < pcm16.length; i++) {
+        channelData[i] = pcm16[i] / 32768.0;
       }
-    };
-
-    voice.recorder.start();
+      const source = voice.audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(voice.audioCtx.destination);
+      
+      const now = voice.audioCtx.currentTime;
+      if (voice.nextPlayTime < now) voice.nextPlayTime = now;
+      source.start(voice.nextPlayTime);
+      voice.nextPlayTime += audioBuffer.duration;
+      
+      source.onended = () => {
+        if (voice.audioCtx.currentTime >= voice.nextPlayTime - 0.1 && voice.active) {
+          setAssistantState("listening", "Listening…");
+        }
+      };
+    }
+  };
+  
+  voice.ws.onclose = () => stopConversation();
+  voice.ws.onerror = () => { toast("Live connection error", "error"); stopConversation(); };
+  
+  const buf = new Uint8Array(voice.analyser.fftSize);
+  const loop = () => {
+    if (!voice.active) return;
+    voice.analyser.getByteTimeDomainData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
+    setLevel(Math.min(1, Math.sqrt(sum / buf.length) * 4));
     voice.levelRAF = requestAnimationFrame(loop);
-  }
+  };
+  voice.levelRAF = requestAnimationFrame(loop);
 }
 
-function startConversation() {
-  if (voice.conversing) return;
-  voice.conversing = true;
-  recordTurn();
-}
 function stopConversation() {
-  voice.conversing = false;
-  if (voice.recording) { try { voice.recorder.stop(); } catch {} }
+  voice.active = false;
+  cancelAnimationFrame(voice.levelRAF);
+  try { voice.stream?.getTracks().forEach(t => t.stop()); } catch {}
+  try { voice.workletNode?.disconnect(); } catch {}
+  try { voice.audioCtx?.close(); } catch {}
+  try { if (voice.ws) voice.ws.close(); } catch {}
+  voice.stream = voice.audioCtx = voice.workletNode = voice.ws = null;
   setLevel(0);
   setAssistantState("idle", "Idle");
+  $("#assistantReply")?.classList.remove("show");
 }
 
 // Tap globe toggles the live conversation on/off.
 window.addEventListener("globe:click", () => {
-  if (voice.conversing || voice.recording) stopConversation();
+  if (voice.active) stopConversation();
   else startConversation();
 });
 
@@ -552,7 +372,18 @@ function submitTyped() {
   const v = input.value.trim();
   if (!v || hudState.busy) return;
   input.value = "";
-  sendToAssistant(v, { speakReply: false });
+  
+  const send = () => {
+    if (voice.ws && voice.ws.readyState === WebSocket.OPEN) {
+      voice.ws.send(JSON.stringify({ clientContent: { turns: [{ role: "user", parts: [{ text: v }] }] } }));
+    }
+  };
+  
+  if (voice.active) {
+    send();
+  } else {
+    startConversation().then(() => setTimeout(send, 800));
+  }
 }
 $("#assistantSend")?.addEventListener("click", submitTyped);
 $("#assistantInput")?.addEventListener("keydown", (e) => {
