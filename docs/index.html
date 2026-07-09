@@ -489,18 +489,24 @@ $('clearDataBtn').addEventListener('click', () => {
   renderTasks(); renderExpenses(); renderMail(); toast('Data cleared');
 });
 
-// ── Jarvis Text Chat (fallback when no Live API) ──────────────
+// ── Jarvis Text Chat ─────────────────────────────────────────
 async function jarvisChat(text) {
-  const key = getApiKey(); if (!key) { toast('Set your Gemini API key first', 'err'); return; }
+  const key = getApiKey();
+  if (!key) { toast('Set your Gemini API key first in Settings', 'err'); return; }
+  if (!key.startsWith('AIza')) {
+    showReply('⚠ Wrong API key format. A Gemini API key must start with "AIzaSy…". Get one free at aistudio.google.com → Get API key → Create API key.');
+    toast('Invalid key — needs to start with AIzaSy', 'err');
+    return;
+  }
   setJarvisState('thinking', 'Thinking…');
   const context = {
     tasks: loadTasks().map(t => t.title + (t.done ? ' (done)' : '')).join(', ') || 'none',
-    mail: loadMail().slice(-3).map(m => `From ${m.from}: ${m.subject}`).join('; ') || 'none',
-    expenses: (() => { const tx = loadTx(); const i = tx.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0); const e = tx.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0); return `income ₹${i}, expenses ₹${e}`; })()
+    mail: loadMail().slice(-3).map(m => 'From ' + m.from + ': ' + m.subject).join('; ') || 'none',
+    expenses: (() => { const tx = loadTx(); const i = tx.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0); const e = tx.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0); return 'income Rs' + i + ', expenses Rs' + e; })()
   };
-  const prompt = `You are JARVIS, an AI assistant. Today's context — Tasks: ${context.tasks}. Recent mail: ${context.mail}. Expenses: ${context.expenses}. Reply in 1-2 short sentences, no markdown. User: ${text}`;
+  const prompt = 'You are JARVIS, an AI assistant. Context — Tasks: ' + context.tasks + '. Mail: ' + context.mail + '. ' + context.expenses + '. Reply in 1-2 short sentences, no markdown. User: ' + text;
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
