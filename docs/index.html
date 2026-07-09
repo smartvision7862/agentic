@@ -580,7 +580,7 @@ function setKey(k){DB.set('gem_key',k);updateHeader();}
 function updateHeader(){
   const k=getKey();
   const el=$('jarvisKey');
-  if(k&&k.startsWith('AIza')){el.textContent='🤖 Jarvis: Active';el.className='pill ok';$('setupBanner').style.display='none';}
+  if(k&&k.length>20){el.textContent='🤖 Jarvis: Active';el.className='pill ok';$('setupBanner').style.display='none';}
   else{el.textContent='🤖 Jarvis: No key';el.className='pill err';$('setupBanner').style.display='';}
 }
 $('jarvisKey').addEventListener('click',()=>{
@@ -591,7 +591,7 @@ $('jarvisKey').addEventListener('click',()=>{
 });
 
 // Settings key management
-$('saveGemKey').addEventListener('click',()=>{const k=$('geminiKey').value.trim();if(!k){toast('Enter a key','err');return;}if(!k.startsWith('AIza')){toast('Key must start with AIzaSy','err');return;}setKey(k);toast('Jarvis activated ✓');});
+$('saveGemKey').addEventListener('click',()=>{const k=$('geminiKey').value.trim();if(!k){toast('Enter a key','err');return;}if(k.length<20){toast('Key looks too short','err');return;}setKey(k);toast('Jarvis activated ✓');});
 $('clearGemKey').addEventListener('click',()=>{DB.del('gem_key');$('geminiKey').value='';updateHeader();toast('Key cleared');});
 $('testGemKey').addEventListener('click',async()=>{
   const k=$('geminiKey').value.trim()||getKey();
@@ -603,7 +603,7 @@ $('testGemKey').addEventListener('click',async()=>{
     else{const e=await r.json();$('gemTestResult').style.color='var(--r)';$('gemTestResult').textContent='Error: '+(e.error?.message||r.status);}
   }catch(e){$('gemTestResult').style.color='var(--r)';$('gemTestResult').textContent='Network error: '+e.message;}
 });
-$('bannerSave').addEventListener('click',()=>{const k=$('bannerKey').value.trim();if(!k||!k.startsWith('AIza')){toast('Must start with AIzaSy','err');return;}setKey(k);$('geminiKey').value=k;toast('Jarvis activated ✓');});
+$('bannerSave').addEventListener('click',()=>{const k=$('bannerKey').value.trim();if(!k||k.length<20){toast('Key looks too short','err');return;}setKey(k);$('geminiKey').value=k;toast('Jarvis activated ✓');});
 $('saveVoiceSettings').addEventListener('click',()=>{DB.set('jvoice',$('jarvisVoice').value);DB.set('jlang',$('jarvisLang').value);toast('Voice saved');});
 $('saveGoogleId').addEventListener('click',()=>{DB.set('gclient_id',$('googleClientId').value.trim());toast('Client ID saved');});
 $('saveTwilio').addEventListener('click',()=>{DB.set('tw_sid',$('twilioSid').value.trim());DB.set('tw_tok',$('twilioToken').value.trim());DB.set('tw_num',$('twilioNum').value.trim());toast('Twilio settings saved');});
@@ -955,7 +955,7 @@ function getCtx(){
 async function askJarvis(text){
   const key=getKey();
   if(!key){toast('Set Gemini API key in Settings','err');return;}
-  if(!key.startsWith('AIza')){showReply('⚠ API key must start with AIzaSy. Get one at aistudio.google.com');toast('Invalid key format','err');return;}
+  if(key.length<20){showReply('⚠ Key looks too short. Get a valid Gemini key at aistudio.google.com');toast('Invalid key format','err');return;}
   setJS('thinking','Thinking…');
   const ctx=getCtx();
   const prompt='You are JARVIS, an AI butler for Agentic OS. Reply in 1-2 short spoken sentences, no markdown or emoji. Context — Tasks: '+ctx.tasks+'. Recent mail: '+ctx.mail+'. Finances: '+ctx.expenses+'. User says: '+text;
