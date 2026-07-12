@@ -50,6 +50,7 @@ function showView(view) {
   if (view === "feed") loadFeed();
   if (view === "studio") loadDrafts();
   if (view === "schedule") loadScheduled();
+  if (view === "bigo") loadBigo();
   if (view === "settings") loadSettings();
 }
 window.showView = showView;
@@ -626,12 +627,301 @@ $("#gmailDisconnect")?.addEventListener("click", async () => {
 const _loadSettings = loadSettings;
 loadSettings = async function () { await _loadSettings(); renderGmailStatus(); };
 
+// ── Bigo Live Controller ──────────────────────────────────────────
+let bigoActiveJobId = null;
+let bigoEventSource = null;
+
+async function loadBigo() {
+  $("#bigoFailureBanner").classList.add("hidden");
+  try {
+    const data = await api("/api/bigo/health");
+    if (!data.proxy || !data.proxy.configured) {
+      $("#bigoProxyCheck").disabled = true;
+      $("#bigoProxyCheck").checked = false;
+      $("#bigoProxyCheck").parentElement.style.opacity = "0.5";
+      $("#bigoProxyCheck").parentElement.title = "Configure NODEMAVEN_API_KEY in .env to use proxies";
+    } else {
+      $("#bigoProxyCheck").disabled = false;
+      $("#bigoProxyCheck").parentElement.style.opacity = "1";
+    }
+
+    if (data.activeJobId) {
+      selectBigoJob(data.activeJobId);
+    } else {
+      resetBigoView();
+    }
+  } catch (err) {
+    toast(err.message, "error");
+  }
+}
+
+function resetBigoView() {
+  bigoActiveJobId = null;
+  if (bigoEventSource) {
+    bigoEventSource.close();
+    bigoEventSource = null;
+  }
+  $("#bigoStatusPill").textContent = "Offline";
+  $("#bigoStatusPill").className = "status-pill";
+  $("#bigoStatRoom").textContent = "—";
+  $("#bigoStatMessages").textContent = "0";
+  $("#bigoStatReplies").textContent = "0";
+  $("#bigoSubmitBtn").style.display = "block";
+  $("#bigoSubmitBtn").disabled = false;
+  $("#bigoSubmitBtn").textContent = "Start Agent";
+  $("#bigoStopBtn").style.display = "none";
+  $("#bigoChatPanel").innerHTML = `<div style="text-align: center; color: var(--muted); font-size: 0.8rem; padding: 20px 0;">No active messages. Start agent above.</div>`;
+  $("#bigoLogsPanel").innerHTML = `<div style="color: var(--muted)">No activity logged yet.</div>`;
+}
+
+async function selectBigoJob(jobId) {
+  bigoActiveJobId = jobId;
+  $("#bigoSubmitBtn").style.display = "none";
+  $("#bigoStopBtn").style.display = "block";
+  $("#bigoStopBtn").disabled = false;
+  $("#bigoStopBtn").textContent = "Stop Agent";
+
+  if (bigoEventSource) bigoEventSource.close();
+  bigoEventSource = new EventSource(`/api/bigo/jobs/${jobId}/stream`);
+
+  bigoEventSource.onmessage = (event) => {
+    let data;
+    try { data = JSON.parse(event.data); } catch { return; }
+
+    if (data.type === "system") {
+      logBigoSystem(data.message, "system");
+    } else if (data.type === "chat_received") {
+      addBigoChat(data.sender, data.message);
+      incrementBigoStat("bigoStatMessages");
+    } else if (data.type === "chat_sent") {
+      addBigoChatReply(data.sender, data.message, data.reply);
+      incrementBigoStat("bigoStatReplies");
+    } else if (data.type === "state") {
+      $("#bigoStatusPill").textContent = data.state.toUpperCase();
+      if (data.state === "completed" || data.state === "failed") {
+        resetBigoView();
+      }
+    } else if (data.type === "error") {
+      logBigoSystem(data.message, "error");
+      $("#bigoStatusPill").textContent = "CRASHED";
+      $("#bigoStatusPill").className = "status-pill failed";
+      resetBigoView();
+    }
+  };
+
+  bigoEventSource.onerror = () => {
+    if (bigoEventSource) {
+      bigoEventSource.close();
+      bigoEventSource = null;
+    }
+  };
+
+  try {
+    const jobs = await api("/api/bigo/jobs");
+    const job = jobs.find((j) => j.id === jobId);
+    if (job) {
+      $("#bigoStatRoom").textContent = job.room_id;
+      $("#bigoStatusPill").textContent = job.status.toUpperCase();
+      $("#bigoStatusPill").className = `status-pill ${job.status === 'active' ? 'pending' : job.status === 'completed' ? 'completed' : 'failed'}`;
+      $("#bigoStatMessages").textContent = job.messages_count;
+      $("#bigoStatReplies").textContent = job.replies_count;
+
+      const chats = await api(`/api/bigo/jobs/${jobId}/chats`);
+      const chatPanel = $("#bigoChatPanel");
+      if (chats.length) {
+        chatPanel.innerHTML = chats.map((c) => `
+          <div class="chat-msg-item" style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; justify-content:space-between; font-size: 0.72rem; color: var(--muted);">
+              <span style="font-weight:700; color:var(--accent-hover);">${escapeHtml(c.sender)}</span>
+              <span>${new Date(c.created_at).toLocaleTimeString()}</span>
+            </div>
+            <div style="font-size:0.84rem;">${escapeHtml(c.message)}</div>
+            ${c.reply ? `<div style="margin-top: 6px; padding: 6px 10px; border-radius: 6px; background: rgba(52,211,153,0.06); border-left: 3px solid #34d399; font-size:0.8rem;">🤖 <b>Jarvis:</b> ${escapeHtml(c.reply)}</div>` : ''}
+          </div>
+        `).reverse().join('');
+      } else {
+        chatPanel.innerHTML = `<div style="text-align: center; color: var(--muted); font-size: 0.8rem; padding: 20px 0;">No messages yet.</div>`;
+      }
+
+      const logs = await api(`/api/bigo/jobs/${jobId}/logs`);
+      const logsPanel = $("#bigoLogsPanel");
+      if (logs.length) {
+        logsPanel.innerHTML = logs.map((l) => `
+          <div style="line-height:1.4; color: ${l.level === 'error' ? 'var(--error)' : l.level === 'warn' ? '#fbbf24' : '#a5f3fc'}">
+            [${new Date(l.created_at).toLocaleTimeString()}] ${escapeHtml(l.message)}
+          </div>
+        `).join('');
+      } else {
+        logsPanel.innerHTML = `<div style="color:var(--muted)">No system logs.</div>`;
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+$("#bigoForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const roomId = $("#bigoRoomId").value.trim();
+  const useProxy = $("#bigoProxyCheck").checked;
+  if (!roomId) return;
+
+  $("#bigoSubmitBtn").disabled = true;
+  $("#bigoSubmitBtn").textContent = "Launching...";
+  $("#bigoFailureBanner").classList.add("hidden");
+
+  try {
+    const data = await api("/api/bigo/jobs", {
+      method: "POST",
+      body: { room_id: roomId, proxy_mode: useProxy }
+    });
+    selectBigoJob(data.jobId);
+  } catch (err) {
+    $("#bigoFailureBanner").textContent = err.message;
+    $("#bigoFailureBanner").classList.remove("hidden");
+    $("#bigoSubmitBtn").disabled = false;
+    $("#bigoSubmitBtn").textContent = "Start Agent";
+  }
+});
+
+$("#bigoStopBtn")?.addEventListener("click", async () => {
+  if (!bigoActiveJobId) return;
+  $("#bigoStopBtn").disabled = true;
+  $("#bigoStopBtn").textContent = "Stopping...";
+  try {
+    await api(`/api/bigo/jobs/${bigoActiveJobId}/stop`, { method: "POST" });
+    resetBigoView();
+  } catch (err) {
+    toast(err.message, "error");
+    $("#bigoStopBtn").disabled = false;
+    $("#bigoStopBtn").textContent = "Stop Agent";
+  }
+});
+
+function logBigoSystem(msg, type) {
+  const panel = $("#bigoLogsPanel");
+  if (!panel) return;
+  if (panel.innerHTML.includes("No activity logged yet")) panel.innerHTML = "";
+  const row = document.createElement("div");
+  row.style.lineHeight = "1.4";
+  row.style.color = type === "error" ? "var(--error)" : type === "system" ? "#fbbf24" : "#a5f3fc";
+  row.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  panel.appendChild(row);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function addBigoChat(sender, msg) {
+  const panel = $("#bigoChatPanel");
+  if (!panel) return;
+  const placeholder = panel.querySelector("div");
+  if (placeholder && placeholder.textContent.includes("No active messages")) panel.innerHTML = "";
+
+  const item = document.createElement("div");
+  item.className = "chat-msg-item";
+  item.style.padding = "10px";
+  item.style.borderRadius = "8px";
+  item.style.background = "rgba(255,255,255,0.02)";
+  item.style.border = "1px solid var(--border)";
+  item.style.display = "flex";
+  item.style.flexDirection = "column";
+  item.style.gap = "4px";
+  item.innerHTML = `
+    <div style="display:flex; justify-content:space-between; font-size: 0.72rem; color: var(--muted);">
+      <span style="font-weight:700; color:var(--accent-hover);">${escapeHtml(sender)}</span>
+      <span>${new Date().toLocaleTimeString()}</span>
+    </div>
+    <div style="font-size:0.84rem;">${escapeHtml(msg)}</div>
+  `;
+  panel.appendChild(item);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function addBigoChatReply(sender, msg, reply) {
+  const panel = $("#bigoChatPanel");
+  if (!panel) return;
+
+  let found = null;
+  const bubbles = panel.querySelectorAll(".chat-msg-item");
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const s = bubbles[i].querySelector("span")?.textContent;
+    const b = bubbles[i].querySelector("div[style*='font-size:0.84rem']")?.textContent;
+    if (s === sender && b === msg) {
+      found = bubbles[i];
+      break;
+    }
+  }
+
+  if (found) {
+    const repDiv = document.createElement("div");
+    repDiv.style.marginTop = "6px";
+    repDiv.style.padding = "6px 10px";
+    repDiv.style.borderRadius = "6px";
+    repDiv.style.background = "rgba(52,211,153,0.06)";
+    repDiv.style.borderLeft = "3px solid #34d399";
+    repDiv.style.fontSize = "0.8rem";
+    repDiv.innerHTML = `🤖 <b>Jarvis:</b> ${escapeHtml(reply)}`;
+    found.appendChild(repDiv);
+  } else {
+    const placeholder = panel.querySelector("div");
+    if (placeholder && placeholder.textContent.includes("No active messages")) panel.innerHTML = "";
+
+    const item = document.createElement("div");
+    item.className = "chat-msg-item";
+    item.style.padding = "10px";
+    item.style.borderRadius = "8px";
+    item.style.background = "rgba(255,255,255,0.02)";
+    item.style.border = "1px solid var(--border)";
+    item.style.display = "flex";
+    item.style.flexDirection = "column";
+    item.style.gap = "4px";
+    item.innerHTML = `
+      <div style="display:flex; justify-content:space-between; font-size: 0.72rem; color: var(--muted);">
+        <span style="font-weight:700; color:var(--accent-hover);">${escapeHtml(sender)}</span>
+        <span>${new Date().toLocaleTimeString()}</span>
+      </div>
+      <div style="font-size:0.84rem;">${escapeHtml(msg)}</div>
+      <div style="margin-top: 6px; padding: 6px 10px; border-radius: 6px; background: rgba(52,211,153,0.06); border-left: 3px solid #34d399; font-size:0.8rem;">🤖 <b>Jarvis:</b> ${escapeHtml(reply)}</div>
+    `;
+    panel.appendChild(item);
+  }
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function incrementBigoStat(id) {
+  const el = $(`#${id}`);
+  if (el) el.textContent = parseInt(el.textContent) + 1;
+}
+
+$("#bigoTabChatBtn")?.addEventListener("click", () => {
+  $("#bigoTabChatBtn").classList.add("active");
+  $("#bigoTabChatBtn").style.borderBottom = "2px solid var(--accent)";
+  $("#bigoTabChatBtn").style.color = "var(--text)";
+  
+  $("#bigoTabLogsBtn").classList.remove("active");
+  $("#bigoTabLogsBtn").style.borderBottom = "2px solid transparent";
+  $("#bigoTabLogsBtn").style.color = "var(--muted)";
+  
+  $("#bigoChatPanel").classList.remove("hidden");
+  $("#bigoLogsPanel").classList.add("hidden");
+});
+
+$("#bigoTabLogsBtn")?.addEventListener("click", () => {
+  $("#bigoTabLogsBtn").classList.add("active");
+  $("#bigoTabLogsBtn").style.borderBottom = "2px solid var(--accent)";
+  $("#bigoTabLogsBtn").style.color = "var(--text)";
+  
+  $("#bigoTabChatBtn").classList.remove("active");
+  $("#bigoTabChatBtn").style.borderBottom = "2px solid transparent";
+  $("#bigoTabChatBtn").style.color = "var(--muted)";
+  
+  $("#bigoLogsPanel").classList.remove("hidden");
+  $("#bigoChatPanel").classList.add("hidden");
+});
+
 // ── Init ─────────────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
 if (params.get("gmail") === "1") { toast("Gmail connected", "success"); history.replaceState(null, "", location.pathname); }
 else if (params.get("gmail") === "error") { toast("Gmail connection failed", "error"); history.replaceState(null, "", location.pathname); }
-// Always boot into the Jarvis dashboard (HUD) on load/refresh — never restore a
-// deep content-system view. Strip any lingering hash so refresh stays home.
 if (location.hash) history.replaceState(null, "", location.pathname + location.search);
 showView("home");
 health();

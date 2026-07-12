@@ -123,6 +123,7 @@
       <button class="navtab" data-view="feed">Feed</button>
       <button class="navtab" data-view="studio">Studio</button>
       <button class="navtab" data-view="schedule">Schedule</button>
+      <button class="navtab" data-view="bigo">Bigo Live</button>
       <button class="navtab" data-view="settings">Settings</button>
     </nav>
 
@@ -308,6 +309,78 @@
                 <button class="btn-primary" id="openSchedule">Schedule this post</button>
               </div>
             </div>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- ── BIGO LIVE ───────────────────────────────────────────── -->
+    <section class="view" id="view-bigo">
+      <div class="grid" style="grid-template-columns: 350px 1fr; gap: 20px;">
+        <aside>
+          <div class="card sidebar-card" style="padding: 20px;">
+            <h2>Stream Target</h2>
+            <form id="bigoForm">
+              <label for="bigoRoomId">Bigo Room ID or URL</label>
+              <input type="text" id="bigoRoomId" placeholder="e.g. 434492429" style="width:100%; margin-bottom: 12px;" />
+              
+              <label class="toggle-row" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <span>Use Rotating Proxies</span>
+                <input type="checkbox" id="bigoProxyCheck" />
+                <span class="toggle-track"></span>
+              </label>
+
+              <div class="failure-banner hidden" id="bigoFailureBanner" style="background: rgba(248, 113, 113, 0.15); border: 1px solid var(--error); border-radius: var(--radius-sm); padding: 12px; font-size: 0.8rem; color: var(--error); margin-bottom: 16px;"></div>
+
+              <button class="btn-primary" id="bigoSubmitBtn" type="submit" style="width:100%">Start Agent</button>
+              <button class="btn-primary" id="bigoStopBtn" type="button" style="width:100%; background: var(--error); display:none">Stop Agent</button>
+            </form>
+
+            <details class="help" style="margin-top: 16px;">
+              <summary>Setup notes</summary>
+              <p class="hint" style="font-size: 0.75rem; line-height: 1.4;">
+                1. Make sure <b>GEMINI_API_KEY</b> is configured.<br/>
+                2. Once the Playwright browser launches, <b>manually log into your Bigo account</b> inside it.<br/>
+                3. The agent will read comments and reply automatically.
+              </p>
+            </details>
+          </div>
+        </aside>
+
+        <main class="card card-main" style="padding: 24px;">
+          <div class="main-head" style="margin-bottom: 16px;">
+            <h3>Bigo Live Monitor</h3>
+            <span id="bigoStatusPill" class="status-pill">Offline</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div class="stat" style="background: var(--surface-raised); border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+              <div id="bigoStatRoom" style="font-size: 1.2rem; font-weight: 700; font-family: var(--mono);">—</div>
+              <div style="font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Active Room</div>
+            </div>
+            <div class="stat" style="background: var(--surface-raised); border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+              <div id="bigoStatMessages" style="font-size: 1.2rem; font-weight: 700; font-family: var(--mono);">0</div>
+              <div style="font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Messages Read</div>
+            </div>
+            <div class="stat" style="background: var(--surface-raised); border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+              <div id="bigoStatReplies" style="font-size: 1.2rem; font-weight: 700; font-family: var(--mono);">0</div>
+              <div style="font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">AI Replies</div>
+            </div>
+          </div>
+
+          <div class="tabs" style="display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+            <button class="tab active" id="bigoTabChatBtn" style="background:none; border:none; color: var(--text); padding: 8px 12px; cursor:pointer; font-weight:600; border-bottom: 2px solid var(--accent)">💬 Live Chat</button>
+            <button class="tab" id="bigoTabLogsBtn" style="background:none; border:none; color: var(--muted); padding: 8px 12px; cursor:pointer; font-weight:600; border-bottom: 2px solid transparent">💻 System Logs</button>
+          </div>
+
+          <!-- Chat panel -->
+          <div id="bigoChatPanel" class="chat-feed" style="flex: 1; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+            <div style="text-align: center; color: var(--muted); font-size: 0.8rem; padding: 20px 0;">No active messages. Start agent above.</div>
+          </div>
+
+          <!-- Logs panel -->
+          <div id="bigoLogsPanel" class="log-panel hidden" style="flex: 1; background: #000; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 320px; overflow-y: auto; font-family: var(--mono); font-size: 0.75rem; color: #a5f3fc; display: flex; flex-direction: column; gap: 4px;">
+            <div style="color: var(--muted)">No activity logged yet.</div>
           </div>
         </main>
       </div>

@@ -208,6 +208,7 @@
   <button class="tab" data-tab="mail">📧 Gmail</button>
   <button class="tab" data-tab="whatsapp">💬 WhatsApp</button>
   <button class="tab" data-tab="expenses">💰 Expenses</button>
+  <button class="tab" data-tab="bigo">🤖 Bigo Live</button>
   <button class="tab" data-tab="settings">⚙ Settings</button>
 </div>
 
@@ -443,6 +444,78 @@
       </div>
       <div id="allTxList" class="tl" style="max-height:420px"></div>
     </div>
+  </div>
+</div>
+
+<!-- BIGO LIVE TAB -->
+<div class="view" id="tab-bigo">
+  <div class="sg" style="display: grid; grid-template-columns: 350px 1fr; gap: 20px;">
+    <aside>
+      <div class="card sidebar-card" style="padding: 20px;">
+        <h2>Stream Target</h2>
+        <form id="bigoForm">
+          <label for="bigoRoomId">Bigo Room ID or URL</label>
+          <input type="text" id="bigoRoomId" placeholder="e.g. 434492429" style="width:100%; margin-bottom: 12px;" />
+          
+          <label class="toggle-row" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <span>Use Rotating Proxies</span>
+            <input type="checkbox" id="bigoProxyCheck" />
+            <span class="toggle-track"></span>
+          </label>
+
+          <div class="failure-banner hidden" id="bigoFailureBanner" style="background: rgba(248, 113, 113, 0.15); border: 1px solid var(--error); border-radius: var(--radius-sm); padding: 12px; font-size: 0.8rem; color: var(--error); margin-bottom: 16px;"></div>
+
+          <button class="btn p" id="bigoSubmitBtn" type="submit" style="width:100%">Start Agent</button>
+          <button class="btn danger" id="bigoStopBtn" type="button" style="width:100%; display:none">Stop Agent</button>
+        </form>
+
+        <details class="help" style="margin-top: 16px;">
+          <summary>Setup notes</summary>
+          <p class="hint" style="font-size: 0.75rem; line-height: 1.4;">
+            1. Make sure <b>GEMINI_API_KEY</b> is configured.<br/>
+            2. Once the Playwright browser launches, <b>manually log into your Bigo account</b> inside it.<br/>
+            3. The agent will read comments and reply automatically.
+          </p>
+        </details>
+      </div>
+    </aside>
+
+    <main class="card card-main" style="padding: 24px;">
+      <div class="main-head" style="margin-bottom: 16px; display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0">Bigo Live Monitor</h3>
+        <span id="bigoStatusPill" class="pill error">Offline</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+        <div class="card" style="padding: 12px; text-align: center; background: rgba(255,255,255,0.01);">
+          <div id="bigoStatRoom" style="font-size: 1.2rem; font-weight: 700; font-family: monospace;">—</div>
+          <div style="font-size: 0.65rem; color: var(--m); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Active Room</div>
+        </div>
+        <div class="card" style="padding: 12px; text-align: center; background: rgba(255,255,255,0.01);">
+          <div id="bigoStatMessages" style="font-size: 1.2rem; font-weight: 700; font-family: monospace;">0</div>
+          <div style="font-size: 0.65rem; color: var(--m); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Messages Read</div>
+        </div>
+        <div class="card" style="padding: 12px; text-align: center; background: rgba(255,255,255,0.01);">
+          <div id="bigoStatReplies" style="font-size: 1.2rem; font-weight: 700; font-family: monospace;">0</div>
+          <div style="font-size: 0.65rem; color: var(--m); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">AI Replies</div>
+        </div>
+      </div>
+
+      <div class="tabs-inner" style="display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+        <button class="itab active" id="bigoTabChatBtn" style="background:none; border:none; color: var(--text); padding: 8px 12px; cursor:pointer; font-weight:600; border-bottom: 2px solid var(--accent)">💬 Live Chat</button>
+        <button class="itab" id="bigoTabLogsBtn" style="background:none; border:none; color: var(--muted); padding: 8px 12px; cursor:pointer; font-weight:600; border-bottom: 2px solid transparent">💻 System Logs</button>
+      </div>
+
+      <!-- Chat panel -->
+      <div id="bigoChatPanel" class="wa-msgs" style="flex: 1; background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 8px; padding: 12px; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+        <div style="text-align: center; color: var(--m); font-size: 0.8rem; padding: 20px 0;">No active messages. Start agent above.</div>
+      </div>
+
+      <!-- Logs panel -->
+      <div id="bigoLogsPanel" class="wa-msgs hidden" style="flex: 1; background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 12px; max-height: 320px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; color: #a5f3fc; display: flex; flex-direction: column; gap: 4px;">
+        <div style="color: var(--m)">No activity logged yet.</div>
+      </div>
+    </main>
   </div>
 </div>
 
@@ -935,6 +1008,299 @@ $('waQuickMsg').addEventListener('keydown',e=>{if(e.key==='Enter')$('waQuickSend
 $('clearWa').addEventListener('click',()=>{saveWaMsgs([]);renderWaMsgs();toast('Cleared');});
 $('waBadge').addEventListener('click',()=>{document.querySelector('[data-tab=whatsapp]').click();});
 
+// ── Bigo Live Controller (talks to content-os server) ─────────────
+let bigoActiveJobId = null;
+let bigoEventSource = null;
+
+async function checkBigoHealth() {
+  try {
+    const r = await fetch('http://localhost:3950/api/bigo/health');
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data.activeJobId) {
+      selectBigoJob(data.activeJobId);
+    } else {
+      resetBigoView();
+    }
+  } catch {}
+}
+
+function resetBigoView() {
+  bigoActiveJobId = null;
+  if (bigoEventSource) {
+    bigoEventSource.close();
+    bigoEventSource = null;
+  }
+  $('bigoStatusPill').textContent = 'Offline';
+  $('bigoStatusPill').className = 'pill error';
+  $('bigoStatRoom').textContent = '—';
+  $('bigoStatMessages').textContent = '0';
+  $('bigoStatReplies').textContent = '0';
+  $('bigoSubmitBtn').style.display = 'block';
+  $('bigoSubmitBtn').disabled = false;
+  $('bigoSubmitBtn').textContent = 'Start Agent';
+  $('bigoStopBtn').style.display = 'none';
+  $('bigoChatPanel').innerHTML = `<div style="text-align: center; color: var(--m); font-size: 0.8rem; padding: 20px 0;">No active messages. Start agent above.</div>`;
+  $('bigoLogsPanel').innerHTML = `<div style="color: var(--m)">No activity logged yet.</div>`;
+}
+
+async function selectBigoJob(jobId) {
+  bigoActiveJobId = jobId;
+  $('bigoSubmitBtn').style.display = 'none';
+  $('bigoStopBtn').style.display = 'block';
+  $('bigoStopBtn').disabled = false;
+  $('bigoStopBtn').textContent = 'Stop Agent';
+
+  if (bigoEventSource) bigoEventSource.close();
+  bigoEventSource = new EventSource(`http://localhost:3950/api/bigo/jobs/${jobId}/stream`);
+
+  bigoEventSource.onmessage = (event) => {
+    let data;
+    try { data = JSON.parse(event.data); } catch { return; }
+
+    if (data.type === 'system') {
+      logBigoSystem(data.message, 'system');
+    } else if (data.type === 'chat_received') {
+      addBigoChat(data.sender, data.message);
+      incrementBigoStat('bigoStatMessages');
+    } else if (data.type === 'chat_sent') {
+      addBigoChatReply(data.sender, data.message, data.reply);
+      incrementBigoStat('bigoStatReplies');
+    } else if (data.type === 'state') {
+      $('bigoStatusPill').textContent = data.state.toUpperCase();
+      if (data.state === 'completed' || data.state === 'failed') {
+        resetBigoView();
+      }
+    } else if (data.type === 'error') {
+      logBigoSystem(data.message, 'error');
+      $('bigoStatusPill').textContent = 'CRASHED';
+      $('bigoStatusPill').className = 'pill error';
+      resetBigoView();
+    }
+  };
+
+  bigoEventSource.onerror = () => {
+    if (bigoEventSource) {
+      bigoEventSource.close();
+      bigoEventSource = null;
+    }
+  };
+
+  try {
+    const r = await fetch('http://localhost:3950/api/bigo/jobs');
+    if (r.ok) {
+      const jobs = await r.json();
+      const job = jobs.find(j => j.id === jobId);
+      if (job) {
+        $('bigoStatRoom').textContent = job.room_id;
+        $('bigoStatusPill').textContent = job.status.toUpperCase();
+        $('bigoStatusPill').className = `pill ${job.status === 'active' ? 'warn' : job.status === 'completed' ? 'success' : 'error'}`;
+        $('bigoStatMessages').textContent = job.messages_count;
+        $('bigoStatReplies').textContent = job.replies_count;
+
+        const cr = await fetch(`http://localhost:3950/api/bigo/jobs/${jobId}/chats`);
+        if (cr.ok) {
+          const chats = await cr.json();
+          const chatPanel = $('bigoChatPanel');
+          if (chats.length) {
+            chatPanel.innerHTML = chats.map(c => `
+              <div class="chat-msg-item" style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; justify-content:space-between; font-size: 0.72rem; color: var(--m);">
+                  <span style="font-weight:700; color:var(--accent-hover);">${esc(c.sender)}</span>
+                  <span>${new Date(c.created_at).toLocaleTimeString()}</span>
+                </div>
+                <div style="font-size:0.84rem;">${esc(c.message)}</div>
+                ${c.reply ? `<div style="margin-top: 6px; padding: 6px 10px; border-radius: 6px; background: rgba(52,211,153,0.06); border-left: 3px solid #34d399; font-size:0.8rem;">🤖 <b>Jarvis:</b> ${esc(c.reply)}</div>` : ''}
+              </div>
+            `).reverse().join('');
+          } else {
+            chatPanel.innerHTML = `<div style="text-align: center; color: var(--m); font-size: 0.8rem; padding: 20px 0;">No messages yet.</div>`;
+          }
+        }
+
+        const lr = await fetch(`http://localhost:3950/api/bigo/jobs/${jobId}/logs`);
+        if (lr.ok) {
+          const logs = await lr.json();
+          const logsPanel = $('bigoLogsPanel');
+          if (logs.length) {
+            logsPanel.innerHTML = logs.map(l => `
+              <div style="line-height:1.4; color: ${l.level === 'error' ? 'var(--r)' : l.level === 'warn' ? '#fbbf24' : '#a5f3fc'}">
+                [${new Date(l.created_at).toLocaleTimeString()}] ${esc(l.message)}
+              </div>
+            `).join('');
+          } else {
+            logsPanel.innerHTML = `<div style="color:var(--m)">No system logs.</div>`;
+          }
+        }
+      }
+    }
+  } catch {}
+}
+
+$('bigoForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const roomId = $('bigoRoomId').value.trim();
+  const useProxy = $('bigoProxyCheck').checked;
+  if (!roomId) return;
+
+  $('bigoSubmitBtn').disabled = true;
+  $('bigoSubmitBtn').textContent = 'Launching...';
+  $('bigoFailureBanner').classList.add('hidden');
+
+  try {
+    const r = await fetch('http://localhost:3950/api/bigo/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ room_id: roomId, proxy_mode: useProxy })
+    });
+    const data = await r.json();
+    if (r.ok) {
+      selectBigoJob(data.jobId);
+    } else {
+      throw new Error(data.error || `HTTP ${r.status}`);
+    }
+  } catch (err) {
+    $('bigoFailureBanner').textContent = err.message;
+    $('bigoFailureBanner').classList.remove('hidden');
+    $('bigoSubmitBtn').disabled = false;
+    $('bigoSubmitBtn').textContent = 'Start Agent';
+  }
+});
+
+$('bigoStopBtn')?.addEventListener('click', async () => {
+  if (!bigoActiveJobId) return;
+  $('bigoStopBtn').disabled = true;
+  $('bigoStopBtn').textContent = 'Stopping...';
+  try {
+    await fetch(`http://localhost:3950/api/bigo/jobs/${bigoActiveJobId}/stop`, { method: 'POST' });
+    resetBigoView();
+  } catch (err) {
+    toast(err.message, 'err');
+    $('bigoStopBtn').disabled = false;
+    $('bigoStopBtn').textContent = 'Stop Agent';
+  }
+});
+
+function logBigoSystem(msg, type) {
+  const panel = $('bigoLogsPanel');
+  if (!panel) return;
+  if (panel.innerHTML.includes('No activity logged yet')) panel.innerHTML = '';
+  const row = document.createElement('div');
+  row.style.lineHeight = '1.4';
+  row.style.color = type === 'error' ? 'var(--r)' : type === 'system' ? '#fbbf24' : '#a5f3fc';
+  row.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  panel.appendChild(row);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function addBigoChat(sender, msg) {
+  const panel = $('bigoChatPanel');
+  if (!panel) return;
+  const placeholder = panel.querySelector('div');
+  if (placeholder && placeholder.textContent.includes('No active messages')) panel.innerHTML = '';
+
+  const item = document.createElement('div');
+  item.className = 'chat-msg-item';
+  item.style.padding = '10px';
+  item.style.borderRadius = '8px';
+  item.style.background = 'rgba(255,255,255,0.02)';
+  item.style.border = '1px solid var(--border)';
+  item.style.display = 'flex';
+  item.style.flexDirection = 'column';
+  item.style.gap = '4px';
+  item.innerHTML = `
+    <div style="display:flex; justify-content:space-between; font-size: 0.72rem; color: var(--m);">
+      <span style="font-weight:700; color:var(--accent-hover);">${esc(sender)}</span>
+      <span>${new Date().toLocaleTimeString()}</span>
+    </div>
+    <div style="font-size:0.84rem;">${esc(msg)}</div>
+  `;
+  panel.appendChild(item);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function addBigoChatReply(sender, msg, reply) {
+  const panel = $('bigoChatPanel');
+  if (!panel) return;
+
+  let found = null;
+  const bubbles = panel.querySelectorAll('.chat-msg-item');
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const s = bubbles[i].querySelector('span')?.textContent;
+    const b = bubbles[i].querySelector("div[style*='font-size:0.84rem']")?.textContent;
+    if (s === sender && b === msg) {
+      found = bubbles[i];
+      break;
+    }
+  }
+
+  if (found) {
+    const repDiv = document.createElement('div');
+    repDiv.style.marginTop = '6px';
+    repDiv.style.padding = '6px 10px';
+    repDiv.style.borderRadius = '6px';
+    repDiv.style.background = 'rgba(52,211,153,0.06)';
+    repDiv.style.borderLeft = '3px solid #34d399';
+    repDiv.style.fontSize = '0.8rem';
+    repDiv.innerHTML = `🤖 <b>Jarvis:</b> ${esc(reply)}`;
+    found.appendChild(repDiv);
+  } else {
+    const placeholder = panel.querySelector('div');
+    if (placeholder && placeholder.textContent.includes('No active messages')) panel.innerHTML = '';
+
+    const item = document.createElement('div');
+    item.className = 'chat-msg-item';
+    item.style.padding = '10px';
+    item.style.borderRadius = '8px';
+    item.style.background = 'rgba(255,255,255,0.02)';
+    item.style.border = '1px solid var(--border)';
+    item.style.display = 'flex';
+    item.style.flexDirection = 'column';
+    item.style.gap = '4px';
+    item.innerHTML = `
+      <div style="display:flex; justify-content:space-between; font-size: 0.72rem; color: var(--m);">
+        <span style="font-weight:700; color:var(--accent-hover);">${esc(sender)}</span>
+        <span>${new Date().toLocaleTimeString()}</span>
+      </div>
+      <div style="font-size:0.84rem;">${esc(msg)}</div>
+      <div style="margin-top: 6px; padding: 6px 10px; border-radius: 6px; background: rgba(52,211,153,0.06); border-left: 3px solid #34d399; font-size:0.8rem;">🤖 <b>Jarvis:</b> ${esc(reply)}</div>
+    `;
+    panel.appendChild(item);
+  }
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function incrementBigoStat(id) {
+  const el = $(id);
+  if (el) el.textContent = parseInt(el.textContent) + 1;
+}
+
+$('bigoTabChatBtn')?.addEventListener('click', () => {
+  $('bigoTabChatBtn').classList.add('active');
+  $('bigoTabChatBtn').style.borderBottom = '2px solid var(--accent)';
+  $('bigoTabChatBtn').style.color = 'var(--text)';
+  
+  $('bigoTabLogsBtn').classList.remove('active');
+  $('bigoTabLogsBtn').style.borderBottom = '2px solid transparent';
+  $('bigoTabLogsBtn').style.color = 'var(--muted)';
+  
+  $('bigoChatPanel').classList.remove('hidden');
+  $('bigoLogsPanel').classList.add('hidden');
+});
+
+$('bigoTabLogsBtn')?.addEventListener('click', () => {
+  $('bigoTabLogsBtn').classList.add('active');
+  $('bigoTabLogsBtn').style.borderBottom = '2px solid var(--accent)';
+  $('bigoTabLogsBtn').style.color = 'var(--text)';
+  
+  $('bigoTabChatBtn').classList.remove('active');
+  $('bigoTabChatBtn').style.borderBottom = '2px solid transparent';
+  $('bigoTabChatBtn').style.color = 'var(--muted)';
+  
+  $('bigoLogsPanel').classList.remove('hidden');
+  $('bigoChatPanel').classList.add('hidden');
+});
+
 // Poll local server for WA messages when running locally
 async function pollWa(){
   try{
@@ -1040,7 +1406,13 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
   // Poll local server health
   fetch('http://localhost:3950/api/health',{signal:AbortSignal.timeout(2000)})
-    .then(r=>r.ok&&toast('✓ Local server detected on port 3950'))
+    .then(r=>{
+      if(r.ok){
+        toast('✓ Local server detected on port 3950');
+        checkBigoHealth();
+        setInterval(checkBigoHealth, 8000);
+      }
+    })
     .catch(()=>{});
 })();
 </script>

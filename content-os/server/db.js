@@ -192,6 +192,33 @@ CREATE TABLE IF NOT EXISTS tasks (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS bigo_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  room_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  messages_count INTEGER DEFAULT 0,
+  replies_count INTEGER DEFAULT 0,
+  proxy_mode INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS bigo_chats (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_id INTEGER NOT NULL,
+  sender TEXT NOT NULL,
+  message TEXT NOT NULL,
+  reply TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bigo_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_id INTEGER NOT NULL,
+  message TEXT NOT NULL,
+  level TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_logs_job ON activity_logs(job_id);
 CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
 CREATE INDEX IF NOT EXISTS idx_articles_score ON articles(priority_score DESC);
@@ -824,6 +851,68 @@ export function updateTask(id, fields) {
 
 export function deleteTask(id) {
   db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
+}
+
+// ── Bigo Live Database Helpers ─────────────────────────────────────
+export function createBigoJob({ roomId, proxyMode = false }) {
+  const now = new Date().toISOString();
+  const info = db.prepare(`
+    INSERT INTO bigo_jobs (room_id, status, created_at, proxy_mode)
+    VALUES (?, 'active', ?, ?)
+  `).run(roomId, now, proxyMode ? 1 : 0);
+  return info.lastInsertRowid;
+}
+
+export function updateBigoJobStatus(id, status) {
+  db.prepare(`UPDATE bigo_jobs SET status = ? WHERE id = ?`).run(status, id);
+}
+
+export function incrementBigoJobStats(id, isReply = false) {
+  if (isReply) {
+    db.prepare(`UPDATE bigo_jobs SET replies_count = replies_count + 1 WHERE id = ?`).run(id);
+  } else {
+    db.prepare(`UPDATE bigo_jobs SET messages_count = messages_count + 1 WHERE id = ?`).run(id);
+  }
+}
+
+export function addBigoChatMessage({ jobId, sender, message, reply }) {
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO bigo_chats (job_id, sender, message, reply, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(jobId, sender, message, reply || null, now);
+}
+
+export function addBigoActivityLog({ jobId, message, level = "info" }) {
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO bigo_logs (job_id, message, level, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(jobId, message, level, now);
+}
+
+export function listBigoJobs() {
+  return db.prepare(`SELECT * FROM bigo_jobs ORDER BY id DESC LIMIT 50`).all();
+}
+
+export function getBigoJob(id) {
+  return db.prepare(`SELECT * FROM bigo_jobs WHERE id = ?`).get(id);
+}
+
+export function getBigoJobChats(jobId) {
+  return db.prepare(`SELECT * FROM bigo_chats WHERE job_id = ? ORDER BY id DESC`).all(jobId);
+}
+
+export function getBigoJobLogs(jobId) {
+  return db.prepare(`SELECT * FROM bigo_logs WHERE job_id = ? ORDER BY id ASC`).all(jobId);
+}
+
+export function getActiveBigoJob() {
+  return db.prepare(`SELECT * FROM bigo_jobs WHERE status = 'active' ORDER BY id DESC LIMIT 1`).get();
+}
+
+export function clearStaleBigoJobs() {
+  db.prepare(`UPDATE bigo_jobs SET status = 'failed' WHERE status = 'active'`).run();
 }
 
 export default db;

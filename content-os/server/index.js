@@ -32,8 +32,29 @@ import { askAssistant, askAssistantStream } from "./ai/assistant.js";
 import { buildAuthUrl, exchangeCode, gmailConfigured } from "./google/oauth.js";
 import { syncMail, syncExpenses, startAutoSync } from "./autoSync.js";
 import { setupLiveApiWs } from "./liveApi.js";
+import {
+  clearStaleBigoJobs,
+  listBigoJobs,
+  createBigoJob,
+  getBigoJob,
+  getBigoJobChats,
+  getBigoJobLogs,
+  getActiveBigoJob,
+} from "./db.js";
+import { startBigoAgent, stopBigoAgent, setBigoLogBroadcaster } from "./bigoRunner.js";
+import { getProxyPublicConfig } from "./nodemaven-proxy.js";
 
 recoverStaleJobs();
+clearStaleBigoJobs();
+
+const bigoSseClients = new Map();
+setBigoLogBroadcaster((jobId, data) => {
+  const clients = bigoSseClients.get(jobId);
+  if (clients) {
+    const payload = `data: ${JSON.stringify(data)}\n\n`;
+    for (const res of clients) res.write(payload);
+  }
+});
 
 const app = express();
 app.use(express.json({ limit: "4mb" }));
@@ -606,6 +627,104 @@ app.get("/api/dashboard", (req, res) => {
     gmail: { connected: Boolean(getGmailTokens()?.refresh_token), configured: gmailConfigured() },
     voice: { tts_provider: getAllSettings().tts_provider || "openrouter" },
     autoUpdateHours: Number(getAllSettings().auto_update_hours || 0),
+  });
+});
+
+// ── Bigo Live API ────────────────────────────────────────────────
+app.get("/api/bigo/health", (req, res) => {
+  const proxyConf = getProxyPublicConfig();
+  const activeJob = getActiveBigoJob();
+  ok(res, {
+    status: "ok",
+    proxy: proxyConf,
+    activeJobId: activeJob ? activeJob.id : null,
+  });
+});
+
+app.get("/api/bigo/jobs", (req, res) => {
+  try {
+    const jobs = listBigoJobs();
+    ok(res, jobs);
+  } catch (err) {
+    fail(res, 500, err.message);
+  }
+});
+
+app.post("/api/bigo/jobs", async (req, res) => {
+  const { room_id, proxy_mode } = req.body || {};
+  if (!room_id) {
+    return fail(res, 400, "room_id is required");
+  }
+
+  const active = getActiveBigoJob();
+  if (active) {
+    return fail(res, 400, `Job ${active.id} is already active`);
+  }
+
+  try {
+    const jobId = createBigoJob({
+      roomId: room_id.trim(),
+      proxyMode: !!proxy_mode,
+    });
+    
+    startBigoAgent(jobId);
+    ok(res, { success: true, jobId });
+  } catch (err) {
+    fail(res, 500, err.message);
+  }
+});
+
+app.post("/api/bigo/jobs/:id/stop", async (req, res) => {
+  const jobId = parseInt(req.params.id);
+  try {
+    await stopBigoAgent(jobId);
+    ok(res, { success: true });
+  } catch (err) {
+    fail(res, 500, err.message);
+  }
+});
+
+app.get("/api/bigo/jobs/:id/chats", (req, res) => {
+  const jobId = parseInt(req.params.id);
+  try {
+    const chats = getBigoJobChats(jobId);
+    ok(res, chats);
+  } catch (err) {
+    fail(res, 500, err.message);
+  }
+});
+
+app.get("/api/bigo/jobs/:id/logs", (req, res) => {
+  const jobId = parseInt(req.params.id);
+  try {
+    const logs = getBigoJobLogs(jobId);
+    ok(res, logs);
+  } catch (err) {
+    fail(res, 500, err.message);
+  }
+});
+
+app.get("/api/bigo/jobs/:id/stream", (req, res) => {
+  const jobId = parseInt(req.params.id);
+  
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  if (!bigoSseClients.has(jobId)) {
+    bigoSseClients.set(jobId, new Set());
+  }
+  bigoSseClients.get(jobId).add(res);
+
+  req.on("close", () => {
+    const clients = bigoSseClients.get(jobId);
+    if (clients) {
+      clients.delete(res);
+      if (clients.size === 0) {
+        bigoSseClients.delete(jobId);
+      }
+    }
   });
 });
 
