@@ -111,6 +111,8 @@ export async function startBigoAgent(jobId) {
 
       // Set of seen messages to avoid duplicate responses
       const processedMessages = new Set();
+      let lastScannedCount = -1;
+      let zeroCountIterations = 0;
 
       // Main polling loop
       while (!runContext.stopped) {
@@ -122,6 +124,20 @@ export async function startBigoAgent(jobId) {
 
           // Read all chat items
           const chatItems = await page.locator('.chat-item').all();
+          
+          if (chatItems.length !== lastScannedCount) {
+            lastScannedCount = chatItems.length;
+            broadcastLog(jobId, "system", { message: `Scanner: Detected ${chatItems.length} total messages in the room.` });
+          }
+
+          if (chatItems.length === 0) {
+            zeroCountIterations++;
+            if (zeroCountIterations === 6) { // ~15 seconds of no messages
+              broadcastLog(jobId, "system", { message: "⚠️ Warning: No chat messages found yet. Make sure you are logged in and the stream is actively receiving chat comments." });
+            }
+          } else {
+            zeroCountIterations = 0;
+          }
           
           for (const item of chatItems) {
             if (runContext.stopped) break;
