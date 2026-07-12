@@ -72,12 +72,37 @@ export async function startBigoAgent(jobId) {
       const page = await browserContext.newPage();
       runContext.page = page;
 
-      const targetUrl = job.room_id.startsWith("http") 
-        ? job.room_id 
-        : `https://www.bigo.tv/${job.room_id}`;
+      // Resolve direct URL vs profile URL
+      let targetUrl = "";
+      let profileUrl = null;
+      if (job.room_id.startsWith("http")) {
+        targetUrl = job.room_id;
+      } else {
+        targetUrl = `https://www.bigo.tv/${job.room_id}`;
+        if (/^\d+$/.test(job.room_id)) {
+          profileUrl = `https://www.bigo.tv/user/${job.room_id}`;
+        }
+      }
 
-      broadcastLog(jobId, "system", { message: `Navigating to: ${targetUrl}` });
-      await page.goto(targetUrl, { timeout: 60000 });
+      if (profileUrl) {
+        broadcastLog(jobId, "system", { message: `Navigating to profile entry point: ${profileUrl}` });
+        await page.goto(profileUrl, { timeout: 60000 });
+        await page.waitForTimeout(5000);
+        
+        // Look for live button/badge
+        const liveBtn = page.locator('.live.btn, .live-btn, .live-badge, a[href*="' + job.room_id + '"]');
+        if (await liveBtn.count() > 0 && await liveBtn.first().isVisible()) {
+          broadcastLog(jobId, "system", { message: "Live stream detected on profile page! Clicking to join stream..." });
+          await liveBtn.first().click();
+          await page.waitForTimeout(5000);
+        } else {
+          broadcastLog(jobId, "system", { message: "No live badge found on profile. Navigating directly to room..." });
+          await page.goto(targetUrl, { timeout: 60000 });
+        }
+      } else {
+        broadcastLog(jobId, "system", { message: `Navigating directly to stream: ${targetUrl}` });
+        await page.goto(targetUrl, { timeout: 60000 });
+      }
 
       try {
         broadcastLog(jobId, "system", { message: "Looking for cookie consent/promo overlays..." });
@@ -127,8 +152,24 @@ export async function startBigoAgent(jobId) {
             addBigoActivityLog({ jobId, message: "Stream page offline/redirected. Waiting 30s before retrying...", level: "warn" });
             await page.waitForTimeout(30000);
             if (runContext.stopped) break;
-            broadcastLog(jobId, "system", { message: `Retrying navigation to: ${targetUrl}` });
-            await page.goto(targetUrl, { timeout: 60000 });
+
+            if (profileUrl) {
+              broadcastLog(jobId, "system", { message: `Retrying via profile page: ${profileUrl}` });
+              await page.goto(profileUrl, { timeout: 60000 });
+              await page.waitForTimeout(5000);
+              const liveBtn = page.locator('.live.btn, .live-btn, .live-badge, a[href*="' + job.room_id + '"]');
+              if (await liveBtn.count() > 0 && await liveBtn.first().isVisible()) {
+                broadcastLog(jobId, "system", { message: "Live badge detected on retry! Clicking to join stream..." });
+                await liveBtn.first().click();
+                await page.waitForTimeout(5000);
+              } else {
+                broadcastLog(jobId, "system", { message: "No live badge on profile. Trying direct navigation..." });
+                await page.goto(targetUrl, { timeout: 60000 });
+              }
+            } else {
+              broadcastLog(jobId, "system", { message: `Retrying direct navigation to: ${targetUrl}` });
+              await page.goto(targetUrl, { timeout: 60000 });
+            }
             lastScannedCount = -1;
             continue;
           }
