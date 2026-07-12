@@ -41,7 +41,7 @@ import {
   getBigoJobLogs,
   getActiveBigoJob,
 } from "./db.js";
-import { startBigoAgent, stopBigoAgent, setBigoLogBroadcaster } from "./bigoRunner.js";
+import { startBigoAgent, stopBigoAgent, setBigoLogBroadcaster, takeBigoScreenshot } from "./bigoRunner.js";
 import { getProxyPublicConfig } from "./nodemaven-proxy.js";
 
 recoverStaleJobs();
@@ -699,6 +699,18 @@ app.get("/api/bigo/jobs/:id/logs", (req, res) => {
   try {
     const logs = getBigoJobLogs(jobId);
     ok(res, logs);
+  } catch (err) {
+    fail(res, 500, err.message);
+  }
+});
+
+app.get("/api/bigo/jobs/:id/screenshot", async (req, res) => {
+  const jobId = parseInt(req.params.id);
+  try {
+    const filename = `screenshot-${jobId}-${Date.now()}.png`;
+    const filepath = join(ROOT_DIR, "data", filename);
+    await takeBigoScreenshot(jobId, filepath);
+    res.sendFile(filepath);
   } catch (err) {
     fail(res, 500, err.message);
   }

@@ -309,3 +309,12 @@ export async function stopBigoAgent(jobId) {
     broadcastLog(jobId, "system", { message: "Stopping agent..." });
   }
 }
+
+export async function takeBigoScreenshot(jobId, filepath) {
+  const run = activeRuns.get(jobId);
+  if (!run || !run.page) {
+    throw new Error("No active running browser session found for this job.");
+  }
+  await run.page.screenshot({ path: filepath });
+  return filepath;
+}
