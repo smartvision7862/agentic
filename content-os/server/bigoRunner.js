@@ -113,12 +113,14 @@ export async function startBigoAgent(jobId) {
           if (chatItems.length !== lastScannedCount) {
             lastScannedCount = chatItems.length;
             broadcastLog(jobId, "system", { message: `Scanner: Detected ${chatItems.length} total messages in the room.` });
+            addBigoActivityLog({ jobId, message: `Scanner: Detected ${chatItems.length} total messages in the room.`, level: "info" });
           }
 
           if (chatItems.length === 0) {
             zeroCountIterations++;
             if (zeroCountIterations === 6) {
               broadcastLog(jobId, "system", { message: "⚠️ Warning: No chat messages found yet. Make sure you are logged in and the stream is actively receiving chat comments." });
+              addBigoActivityLog({ jobId, message: "⚠️ Warning: No chat messages found yet. Make sure you are logged in and the stream is actively receiving chat comments.", level: "warn" });
             }
           } else {
             zeroCountIterations = 0;
