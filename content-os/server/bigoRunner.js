@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import { GoogleGenAI } from "@google/genai";
+import { chat } from "./ai/openrouter.js";
 import { join } from "path";
 import { ROOT_DIR, config } from "./config.js";
 import {
@@ -91,12 +92,24 @@ export async function startBigoAgent(jobId) {
       broadcastLog(jobId, "system", { message: "Bigo Live Room loaded. Monitoring chat room..." });
       addBigoActivityLog({ jobId, message: "Live stream room connected successfully.", level: "info" });
 
-      // Fallback key lookup: first try config, then check ENV
+      // Detect AI Provider (OpenRouter/ChatGPT vs direct Gemini)
+      let useOpenRouter = false;
+      let ai = null;
+
+      const openrouterKey = config.openrouterApiKey || process.env.OPENROUTER_API_KEY;
       const geminiKey = config.geminiApiKey || process.env.GEMINI_API_KEY;
-      if (!geminiKey) {
-        throw new Error("GEMINI_API_KEY is not set. Please add it to your Settings or .env file.");
+
+      if (openrouterKey) {
+        useOpenRouter = true;
+        broadcastLog(jobId, "system", { message: "🤖 ChatGPT (OpenRouter) agent initialized for replies." });
+        addBigoActivityLog({ jobId, message: "ChatGPT (OpenRouter) agent initialized for replies.", level: "info" });
+      } else if (geminiKey) {
+        ai = new GoogleGenAI({ apiKey: geminiKey });
+        broadcastLog(jobId, "system", { message: "🤖 Gemini direct agent initialized for replies." });
+        addBigoActivityLog({ jobId, message: "Gemini direct agent initialized for replies.", level: "info" });
+      } else {
+        throw new Error("No AI API Key found. Please set OPENROUTER_API_KEY or GEMINI_API_KEY in your .env file.");
       }
-      const ai = new GoogleGenAI({ apiKey: geminiKey });
 
       const processedMessages = new Set();
       let lastScannedCount = -1;
@@ -156,22 +169,24 @@ export async function startBigoAgent(jobId) {
 
             let reply = "";
             try {
-              const prompt = `You are a live chatbot assistant in a Bigo Live room. 
-Respond directly to the user in 1-2 very short sentences. 
-CRITICAL: Respond in the EXACT same language as the message (e.g. if it is in Arabic, reply in Arabic; if in English, reply in English; if in Spanish, reply in Spanish).
-No markdown, no links, and no emojis.
-Commenter Name: ${sender}
-Message: ${messageText}`;
+              const systemPrompt = "You are a live chatbot assistant in a Bigo Live room. Respond directly to the user in 1-2 very short sentences. CRITICAL: Respond in the EXACT same language as the message (e.g. if the message is in Arabic, reply in Arabic; if in Spanish, reply in Spanish). No markdown, no links, and no emojis.";
+              const userPrompt = `Commenter Name: ${sender}\nMessage: ${messageText}`;
 
-              const response = await ai.models.generateContent({
-                model: 'gemini-2.0-flash',
-                contents: prompt,
-              });
-
-              reply = response.text?.trim() || "";
-            } catch (gemErr) {
-              broadcastLog(jobId, "system", { message: `Gemini Error: ${gemErr.message}` });
-              addBigoActivityLog({ jobId, message: `Failed to generate AI reply: ${gemErr.message}`, level: "warn" });
+              if (useOpenRouter) {
+                reply = await chat([
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userPrompt }
+                ], { model: "openai/gpt-4o-mini" });
+              } else {
+                const response = await ai.models.generateContent({
+                  model: 'gemini-2.0-flash',
+                  contents: `${systemPrompt}\n\n${userPrompt}`,
+                });
+                reply = response.text?.trim() || "";
+              }
+            } catch (aiErr) {
+              broadcastLog(jobId, "system", { message: `AI Response Error: ${aiErr.message}` });
+              addBigoActivityLog({ jobId, message: `Failed to generate AI reply: ${aiErr.message}`, level: "warn" });
               continue;
             }
 
