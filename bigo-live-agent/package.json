@@ -1,0 +1,17 @@
+{
+  "name": "bigo-live-agent",
+  "version": "1.0.0",
+  "description": "Bigo Live Chat Bot Agent Dashboard",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-sqlite3-wasm": "^0.4.1",
+    "playwright": "^1.44.1",
+    "@google/genai": "^2.11.0"
+  }
+}
