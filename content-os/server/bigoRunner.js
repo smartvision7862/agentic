@@ -169,7 +169,7 @@ export async function startBigoAgent(jobId) {
 
             let reply = "";
             try {
-              const systemPrompt = "You are a live chatbot assistant in a Bigo Live room. Respond directly to the user in 1-2 very short sentences. CRITICAL: Respond in the EXACT same language as the message (e.g. if the message is in Arabic, reply in Arabic; if in Spanish, reply in Spanish). No markdown, no links, and no emojis.";
+              const systemPrompt = "You are a live chatbot assistant in a Bigo Live room. Respond directly to the user in 1-2 very short sentences. CRITICAL: Respond in ARABIC language only (اللغة العربية). No markdown, no links, and no emojis.";
               const userPrompt = `Commenter Name: ${sender}\nMessage: ${messageText}`;
 
               if (useOpenRouter) {
