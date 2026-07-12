@@ -121,6 +121,18 @@ export async function startBigoAgent(jobId) {
             throw new Error("Bigo Live browser page was closed.");
           }
 
+          const currentUrl = page.url();
+          if (currentUrl.includes("account-deleted") || currentUrl.includes("host-offline")) {
+            broadcastLog(jobId, "system", { message: "⚠️ Stream page offline/redirected. Waiting 30s before retrying connection..." });
+            addBigoActivityLog({ jobId, message: "Stream page offline/redirected. Waiting 30s before retrying...", level: "warn" });
+            await page.waitForTimeout(30000);
+            if (runContext.stopped) break;
+            broadcastLog(jobId, "system", { message: `Retrying navigation to: ${targetUrl}` });
+            await page.goto(targetUrl, { timeout: 60000 });
+            lastScannedCount = -1;
+            continue;
+          }
+
           const chatItems = await page.locator('.chat-item').all();
           
           if (chatItems.length !== lastScannedCount) {
